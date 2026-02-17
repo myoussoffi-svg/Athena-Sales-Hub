@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Workspace ───────────────────────────────────────────────
+model Workspace {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  logoUrl          String?
+  aiSystemPrompt   String   @db.Text
+  campaignTypes    Json     @default("[]")
+  settings         Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  members        WorkspaceMember[]
+  campaigns      Campaign[]
+  contacts       Contact[]
+  sendingDomains SendingDomain[]
+  voiceSamples   VoiceSample[]
+}
+
+// ─── User ────────────────────────────────────────────────────
+model User {
+  id                      String    @id @default(cuid())
+  name                    String?
+  email                   String    @unique
+  emailVerified           DateTime?
+  image                   String?
+  microsoftRefreshToken   String?   @db.Text  // encrypted
+  microsoftAccessToken    String?  @db.Text  // encrypted, cached short-term
+  tokenExpiry             DateTime?
+  role                    UserRole @default(MEMBER)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  workspaces     WorkspaceMember[]
+  campaigns      Campaign[]
+  contacts       Contact[]
+  outreaches     Outreach[]
+  voiceSamples   VoiceSample[]
+  accounts       Account[]
+  sessions       Session[]
+}
+
+enum UserRole {
+  OWNER
+  MEMBER
+}
+
+// ─── NextAuth required tables ────────────────────────────────
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Workspace Membership ────────────────────────────────────
+model WorkspaceMember {
+  id          String          @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole   @default(MEMBER)
+  createdAt   DateTime        @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+enum WorkspaceRole {
+  ADMIN
+  MEMBER
+}
+
+// ─── Sending Domain ──────────────────────────────────────────
+model SendingDomain {
+  id              String       @id @default(cuid())
+  workspaceId     String
+  domain          String
+  emailAddress    String
+  displayName     String?
+  smtpHost        String?
+  smtpPort        Int?         @default(587)
+  smtpUser        String?
+  smtpPass        String?      @db.Text  // encrypted
+  spfVerified     Boolean      @default(false)
+  dkimVerified    Boolean      @default(false)
+  dmarcVerified   Boolean      @default(false)
+  warmupStatus    WarmupStatus @default(NEW)
+  warmupStartedAt DateTime?
+  warmupDayNumber Int          @default(0)
+  dailySendLimit  Int          @default(2)
+  totalSent       Int          @default(0)
+  totalBounced    Int          @default(0)
+  healthScore     Int          @default(100)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  workspace  Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  outreaches Outreach[]
+  warmupLogs WarmupLog[]
+}
+
+enum WarmupStatus {
+  NEW
+  WARMING
+  READY
+  PAUSED
+  FLAGGED
+}
+
+// ─── Campaign ────────────────────────────────────────────────
+model Campaign {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  name          String
+  type          String
+  description   String?        @db.Text
+  cadenceConfig Json           @default("{\"followUp1Days\": 5, \"followUp2Days\": 14}")
+  status        CampaignStatus @default(DRAFT)
+  createdById   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  contacts   Contact[]
+  outreaches Outreach[]
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+// ─── Contact ─────────────────────────────────────────────────
+model Contact {
+  id                     String        @id @default(cuid())
+  workspaceId            String
+  campaignId             String?
+  assignedToId           String?
+  name                   String
+  email                  String
+  title                  String?
+  organization           String?
+  orgType                String?
+  location               String?
+  notes                  String?       @db.Text
+  websiteUrl             String?
+  researchData           Json?
+  status                 ContactStatus @default(NEW)
+  outlookConversationId  String?
+  lastContactedAt        DateTime?
+  repliedAt              DateTime?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  assignedTo User?      @relation(fields: [assignedToId], references: [id])
+  outreaches Outreach[]
+
+  @@index([workspaceId, campaignId])
+  @@index([workspaceId, status])
+}
+
+enum ContactStatus {
+  NEW
+  RESEARCHED
+  OUTREACH_STARTED
+  REPLIED
+  MEETING_SCHEDULED
+  CONVERTED
+  NOT_INTERESTED
+  BOUNCED
+}
+
+// ─── Outreach ────────────────────────────────────────────────
+model Outreach {
+  id                  String            @id @default(cuid())
+  contactId           String
+  campaignId          String?
+  userId              String
+  sendingDomainId     String?
+  type                OutreachType
+  subject             String?
+  bodyHtml            String?           @db.Text
+  bodyPlain           String?           @db.Text
+  hookUsed            String?
+  tone                String?
+  personalizationScore PersonScore?
+  aiMetadata          Json?
+  subjectVariants     Json?             // array of 3 subject line options
+  status              OutreachStatus    @default(SCHEDULED)
+  scheduledAt         DateTime?
+  sentAt              DateTime?
+  outlookDraftId      String?
+  outlookMessageId    String?
+  internetMessageId   String?
+  parentOutreachId    String?
+  replyContent        String?           @db.Text
+  replySentiment      String?
+  suggestedReply      String?           @db.Text
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  contact        Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign       Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  user           User           @relation(fields: [userId], references: [id])
+  sendingDomain  SendingDomain? @relation(fields: [sendingDomainId], references: [id])
+  parentOutreach Outreach?      @relation("OutreachThread", fields: [parentOutreachId], references: [id])
+  childOutreaches Outreach[]    @relation("OutreachThread")
+
+  @@index([contactId])
+  @@index([campaignId])
+  @@index([userId, status])
+  @@index([status, scheduledAt])
+}
+
+enum OutreachType {
+  INITIAL
+  FOLLOWUP_1
+  FOLLOWUP_2
+  MEETING_REQUEST
+  REPLY
+}
+
+enum OutreachStatus {
+  SCHEDULED
+  DRAFT_CREATED
+  APPROVED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum PersonScore {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ─── Voice Sample ────────────────────────────────────────────
+model VoiceSample {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  sampleText  String   @db.Text
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Warmup Log ──────────────────────────────────────────────
+model WarmupLog {
+  id              String   @id @default(cuid())
+  sendingDomainId String
+  date            DateTime @db.Date
+  emailsSent      Int      @default(0)
+  emailsReceived  Int      @default(0)
+  repliesSent     Int      @default(0)
+  bounces         Int      @default(0)
+  healthScore     Int      @default(100)
+
+  sendingDomain SendingDomain @relation(fields: [sendingDomainId], references: [id], onDelete: Cascade)
+
+  @@unique([sendingDomainId, date])
+}
+
+// ─── Job Queue (replaces Inngest) ────────────────────────────
+model JobQueue {
+  id          String    @id @default(cuid())
+  type        String    // e.g. "send_email", "check_replies", "warmup", "generate_followup"
+  payload     Json
+  status      JobStatus @default(PENDING)
+  priority    Int       @default(0)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  lastError   String?   @db.Text
+  runAfter    DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, runAfter, priority])
+  @@index([type, status])
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD
+}
