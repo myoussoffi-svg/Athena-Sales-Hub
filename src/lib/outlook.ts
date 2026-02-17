@@ -401,13 +401,14 @@ export async function getRecentBounces(
     async (client) => {
       const sinceStr = since.toISOString();
 
-      // Search for NDR messages from postmaster
+      // Search for NDR/undeliverable messages by subject
+      // NDR senders vary (postmaster@, MicrosoftExchange...@domain, etc.)
+      // so searching by subject "Undeliverable" is more reliable
       const messages = await client
         .api("/me/messages")
         .filter(
-          `receivedDateTime ge ${sinceStr} and (from/emailAddress/address eq 'postmaster@outlook.com' or from/emailAddress/address eq 'mailer-daemon@outlook.com')`,
+          `receivedDateTime ge ${sinceStr} and startsWith(subject, 'Undeliverable')`,
         )
-        .orderby("receivedDateTime desc")
         .top(50)
         .select("id,body,toRecipients,receivedDateTime")
         .get();
@@ -435,16 +436,27 @@ export async function getRecentBounces(
         const emailRegex = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
         const foundEmails = body.match(emailRegex) ?? [];
 
-        // Filter out system addresses to find the actual bounced recipient
-        const systemAddresses = [
+        // Filter out system/sender addresses to find the actual bounced recipient
+        const systemPatterns = [
           "postmaster@",
           "mailer-daemon@",
           "ndr@",
           "notify@",
+          "microsoftexchange",
+          "@outlook.com",  // Skip outlook.com system addresses
+          ".prod.outlook.com",  // Internal Exchange server addresses
+          "namprd",  // Exchange internal routing addresses
         ];
+        // Also get the user's own email to exclude it
+        const me = await client.api("/me").select("mail,userPrincipalName").get();
+        const userEmail = ((me.mail as string) || (me.userPrincipalName as string)).toLowerCase();
+
         for (const email of foundEmails) {
           const emailLower = email.toLowerCase();
-          if (!systemAddresses.some((s) => emailLower.startsWith(s))) {
+          if (
+            emailLower !== userEmail &&
+            !systemPatterns.some((s) => emailLower.includes(s))
+          ) {
             bouncedEmails.push(emailLower);
           }
         }

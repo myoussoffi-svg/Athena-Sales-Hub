@@ -36,6 +36,7 @@ const BOUNCE_SENDERS = [
   "notify@microsoft.com",
   "postmaster@outlook.com",
   "postmaster@hotmail.com",
+  "microsoftexchange",  // Internal Exchange NDRs (e.g. MicrosoftExchange329e...@domain)
 ];
 
 const BOUNCE_KEYWORDS = [
@@ -61,9 +62,16 @@ function isBounceMessage(from: string, body: string): boolean {
   const bodyLower = body.toLowerCase();
 
   const isBounceSender = BOUNCE_SENDERS.some((s) => fromLower.includes(s));
-  if (!isBounceSender) return false;
 
-  return BOUNCE_KEYWORDS.some((kw) => bodyLower.includes(kw));
+  // If from a known bounce sender, check body for bounce keywords
+  if (isBounceSender) {
+    return BOUNCE_KEYWORDS.some((kw) => bodyLower.includes(kw));
+  }
+
+  // Also detect by body content alone (catches NDRs from unexpected senders)
+  // Require at least 2 bounce keywords to avoid false positives
+  const matchCount = BOUNCE_KEYWORDS.filter((kw) => bodyLower.includes(kw)).length;
+  return matchCount >= 2;
 }
 
 /**
@@ -230,7 +238,7 @@ async function jobCheckReplies(): Promise<void> {
       distinct: ["userId"],
     });
 
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000); // last 24h
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // last 7 days
 
     for (const { userId } of usersWithOutreach) {
       try {
