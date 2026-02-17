@@ -102,6 +102,18 @@ export async function POST(request: NextRequest) {
     high: PersonScore.HIGH,
   };
 
+  // School org campaigns use a fixed template instead of AI generation
+  const schoolOrgTypes = ["finance_club", "faculty_career_services", "student_direct"];
+  const isSchoolOrg = schoolOrgTypes.includes(campaign.type);
+
+  const SCHOOL_ORG_TEMPLATE_PLAIN = `Hi,\n\nI'm reaching out with a new platform that we put together, Athena, a training and recruiting platform aimed at helping students find roles in banking and PE. Athena is an online IB/PE career platform, led by ex-banking and PE professionals, that covers the full technical foundation (modeling, valuation, LBOs, M&A), but is designed around getting hired. The platform gives students real reps with applications of technical skills and includes realistic interview simulations, a resume feedback portal, and an AI-supported outreach CRM that helps students generate and send bulk emails to finance contacts.\n\nWe are currently finalizing a selective program that pairs top Athena performers with experienced mentors and boutique investment banking internship opportunities. We're starting by sharing Athena with student organizations as an added resource for motivated members recruiting for IB, M&A and private equity roles. I am including a demo for you to see if you would like to take a look: https://learn.athena.pe/preview/ib\n\nWould this be of interest to any students in your program? If so, we might also be able to provide discounts if multiple members are interested.\n\nBest,\nMontana\nATHENA\nMontana Youssoffi\nCo-Founder\nMontana@athena.pe`;
+
+  const SCHOOL_ORG_TEMPLATE_HTML = `<p>Hi,</p>
+<p>I'm reaching out with a new platform that we put together, Athena, a training and recruiting platform aimed at helping students find roles in banking and PE. Athena is an online IB/PE career platform, led by ex-banking and PE professionals, that covers the full technical foundation (modeling, valuation, LBOs, M&amp;A), but is designed around getting hired. The platform gives students real reps with applications of technical skills and includes realistic interview simulations, a resume feedback portal, and an AI-supported outreach CRM that helps students generate and send bulk emails to finance contacts.</p>
+<p>We are currently finalizing a selective program that pairs top Athena performers with experienced mentors and boutique investment banking internship opportunities. We're starting by sharing Athena with student organizations as an added resource for motivated members recruiting for IB, M&amp;A and private equity roles. I am including a demo for you to see if you would like to take a look: <a href="https://learn.athena.pe/preview/ib">https://learn.athena.pe/preview/ib</a></p>
+<p>Would this be of interest to any students in your program? If so, we might also be able to provide discounts if multiple members are interested.</p>
+<p>Best,<br>Montana<br>ATHENA<br>Montana Youssoffi<br>Co-Founder<br>Montana@athena.pe</p>`;
+
   // Process sequentially to avoid Claude API rate limits
   let generated = 0;
   const errors: string[] = [];
@@ -127,43 +139,63 @@ export async function POST(request: NextRequest) {
             ? "followup_1"
             : "followup_2";
 
-      const result = await generateEmail({
-        workspaceSystemPrompt: workspace.aiSystemPrompt,
-        voiceProfile,
-        contact: {
-          name: contact.name,
-          email: contact.email,
-          title: contact.title ?? undefined,
-          organization: contact.organization ?? undefined,
-          orgType: contact.orgType ?? undefined,
-          location: contact.location ?? undefined,
-          notes: contact.notes ?? undefined,
-          researchData:
-            (contact.researchData as Record<string, unknown>) ?? undefined,
-        },
-        campaignType: campaign.type,
-        emailType,
-        previousEmails: previousOutreaches.map(
-          (o: {
-            type: string;
-            subject: string | null;
-            bodyPlain: string | null;
-            sentAt: Date | null;
-          }) => ({
-            type: o.type,
-            subject: o.subject ?? "",
-            bodyPlain: o.bodyPlain ?? "",
-            sentAt: o.sentAt?.toISOString() ?? "",
-          }),
-        ),
-      });
+      let subject: string;
+      let subjectVariants: string[];
+      let bodyHtml: string;
+      let bodyPlain: string;
+      let hookUsed: string;
+      let tone: string;
+      let personalizationScore: PersonScore;
 
-      // Override subject for school org campaigns: "Athena - {Org Name}"
-      const schoolOrgTypes = ["finance_club", "faculty_career_services", "student_direct"];
-      if (schoolOrgTypes.includes(campaign.type) && contact.organization) {
-        const fixedSubject = `Athena - ${contact.organization}`;
-        result.subject = fixedSubject;
-        result.subjectVariants = [fixedSubject];
+      if (isSchoolOrg && emailType === "initial") {
+        // Use fixed template for school org initial outreach
+        subject = `Athena - ${contact.organization || contact.name}`;
+        subjectVariants = [subject];
+        bodyHtml = SCHOOL_ORG_TEMPLATE_HTML;
+        bodyPlain = SCHOOL_ORG_TEMPLATE_PLAIN;
+        hookUsed = "Standard school org template";
+        tone = "warm professional";
+        personalizationScore = PersonScore.MEDIUM;
+      } else {
+        // AI-generated email for non-school-org campaigns (and follow-ups)
+        const result = await generateEmail({
+          workspaceSystemPrompt: workspace.aiSystemPrompt,
+          voiceProfile,
+          contact: {
+            name: contact.name,
+            email: contact.email,
+            title: contact.title ?? undefined,
+            organization: contact.organization ?? undefined,
+            orgType: contact.orgType ?? undefined,
+            location: contact.location ?? undefined,
+            notes: contact.notes ?? undefined,
+            researchData:
+              (contact.researchData as Record<string, unknown>) ?? undefined,
+          },
+          campaignType: campaign.type,
+          emailType,
+          previousEmails: previousOutreaches.map(
+            (o: {
+              type: string;
+              subject: string | null;
+              bodyPlain: string | null;
+              sentAt: Date | null;
+            }) => ({
+              type: o.type,
+              subject: o.subject ?? "",
+              bodyPlain: o.bodyPlain ?? "",
+              sentAt: o.sentAt?.toISOString() ?? "",
+            }),
+          ),
+        });
+
+        subject = result.subject;
+        subjectVariants = result.subjectVariants;
+        bodyHtml = result.bodyHtml;
+        bodyPlain = result.bodyPlain;
+        hookUsed = result.hookUsed;
+        tone = result.tone;
+        personalizationScore = personScoreMap[result.personalizationScore];
       }
 
       // Create outreach record
@@ -178,16 +210,17 @@ export async function POST(request: NextRequest) {
               : emailType === "followup_1"
                 ? "FOLLOWUP_1"
                 : "FOLLOWUP_2",
-          subject: result.subject,
-          subjectVariants: result.subjectVariants,
-          bodyHtml: result.bodyHtml,
-          bodyPlain: result.bodyPlain,
-          hookUsed: result.hookUsed,
-          tone: result.tone,
-          personalizationScore: personScoreMap[result.personalizationScore],
+          subject,
+          subjectVariants,
+          bodyHtml,
+          bodyPlain,
+          hookUsed,
+          tone,
+          personalizationScore,
           aiMetadata: {
             generatedAt: new Date().toISOString(),
-            voiceProfileUsed: !!voiceProfile,
+            voiceProfileUsed: !isSchoolOrg && !!voiceProfile,
+            templateUsed: isSchoolOrg && emailType === "initial" ? "school_org_standard" : undefined,
           },
           status: OutreachStatus.DRAFT_CREATED,
         },
