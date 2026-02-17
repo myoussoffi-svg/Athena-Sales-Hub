@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import Papa from "papaparse";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
+import { Search, X, Download } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -61,6 +62,53 @@ export function ContactsToolbar({
   const clearFilters = useCallback(() => {
     router.push("/contacts");
   }, [router]);
+
+  const [exporting, setExporting] = useState(false);
+
+  const exportCsv = useCallback(async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      const res = await fetch(`/api/contacts?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch contacts");
+      const contacts = await res.json();
+
+      const rows = contacts.map(
+        (c: {
+          name: string;
+          email: string;
+          title?: string | null;
+          organization?: string | null;
+          campaign?: { name: string } | null;
+          status: string;
+          lastContactedAt?: string | null;
+        }) => ({
+          Name: c.name,
+          Email: c.email,
+          Title: c.title ?? "",
+          Organization: c.organization ?? "",
+          Campaign: c.campaign?.name ?? "",
+          Status: c.status,
+          "Last Contacted": c.lastContactedAt
+            ? new Date(c.lastContactedAt).toLocaleDateString()
+            : "",
+        }),
+      );
+
+      const csv = Papa.unparse(rows);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contacts-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("CSV export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [searchParams]);
 
   const hasFilters = currentSearch || currentCampaignId || currentStatus;
 
@@ -123,6 +171,11 @@ export function ContactsToolbar({
           Clear
         </Button>
       )}
+
+      <Button variant="outline" size="sm" onClick={exportCsv} disabled={exporting}>
+        <Download className="h-4 w-4 mr-1" />
+        {exporting ? "Exporting..." : "Export CSV"}
+      </Button>
     </div>
   );
 }
