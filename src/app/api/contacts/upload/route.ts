@@ -60,10 +60,33 @@ export async function POST(request: NextRequest) {
   const rawText = await file.text();
   const text = rawText.replace(/^\uFEFF/, "");
 
+  // Map common alternative column names to our expected field names
+  const headerAliases: Record<string, string> = {
+    "organization name": "name",
+    "org name": "name",
+    "contact name": "name",
+    "full name": "name",
+    "contact email": "email",
+    "email address": "email",
+    "university / school": "organization",
+    "university": "organization",
+    "school": "organization",
+    "org type": "orgtype",
+    "type": "orgtype",
+    "linkedin / website": "websiteurl",
+    "website": "websiteurl",
+    "linkedin": "websiteurl",
+    "website url": "websiteurl",
+    "url": "websiteurl",
+  };
+
   const { data, errors } = Papa.parse<CsvRow>(text, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (header: string) => header.trim().toLowerCase(),
+    transformHeader: (header: string) => {
+      const normalized = header.trim().toLowerCase();
+      return headerAliases[normalized] || normalized;
+    },
   });
 
   if (errors.length > 0 && data.length === 0) {
