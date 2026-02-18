@@ -17,15 +17,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Mail, Sparkles, Clock, ArrowRight } from "lucide-react";
+import { Mail, Sparkles, Clock, ArrowRight, Send } from "lucide-react";
 import { GenerateDialog } from "./generate-dialog";
 
 interface OutreachWithRelations {
   id: string;
   subject: string | null;
   type: string;
+  status: string;
   personalizationScore: string | null;
   createdAt: Date;
+  sentAt: Date | null;
   contact: {
     id: string;
     name: string;
@@ -38,6 +40,11 @@ interface OutreachWithRelations {
     name: string;
   } | null;
 }
+
+const outreachStatusColors: Record<string, string> = {
+  SENT: "bg-green-500/15 text-green-700 dark:text-green-400",
+  FAILED: "bg-red-500/15 text-red-700 dark:text-red-400",
+};
 
 const scoreColors: Record<string, string> = {
   HIGH: "bg-green-500/15 text-green-700 dark:text-green-400",
@@ -56,11 +63,13 @@ const typeLabels: Record<string, string> = {
 export default async function OutreachQueuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ campaignId?: string }>;
+  searchParams: Promise<{ campaignId?: string; status?: string }>;
 }) {
   const { user, workspace } = await requireWorkspace();
   const resolvedParams = await searchParams;
   const campaignId = resolvedParams.campaignId;
+  const statusParam = resolvedParams.status;
+  const isSentView = statusParam === "SENT";
 
   // Load active campaigns for the generate dialog
   const campaigns = await prisma.campaign.findMany({
@@ -79,11 +88,11 @@ export default async function OutreachQueuePage({
     campaignName = campaign?.name ?? null;
   }
 
-  // Load draft outreaches for review
+  // Load outreaches
   const outreaches = await prisma.outreach.findMany({
     where: {
       userId: user.id,
-      status: "DRAFT_CREATED",
+      status: isSentView ? { in: ["SENT", "FAILED"] } : "DRAFT_CREATED",
       campaign: {
         workspaceId: workspace.id,
       },
@@ -103,24 +112,27 @@ export default async function OutreachQueuePage({
         select: { id: true, name: true },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: isSentView ? { sentAt: "desc" } : { createdAt: "desc" },
   });
+
+  const pageTitle = isSentView ? "Sent Emails" : "Outreach Queue";
+  const pageDescription = isSentView
+    ? "Emails that have been sent."
+    : "Review and approve AI-generated emails before sending.";
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Outreach Queue</h1>
-          <p className="text-muted-foreground">
-            Review and approve AI-generated emails before sending.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">{pageTitle}</h1>
+          <p className="text-muted-foreground">{pageDescription}</p>
         </div>
-        <GenerateDialog campaigns={campaigns} />
+        {!isSentView && <GenerateDialog campaigns={campaigns} />}
       </div>
 
       {/* Summary bar */}
-      {outreaches.length > 0 && (
+      {!isSentView && outreaches.length > 0 && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex items-center gap-3 py-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -149,20 +161,38 @@ export default async function OutreachQueuePage({
       {outreaches.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-1">No emails to review</h3>
+            {isSentView ? (
+              <Send className="h-12 w-12 text-muted-foreground mb-4" />
+            ) : (
+              <Mail className="h-12 w-12 text-muted-foreground mb-4" />
+            )}
+            <h3 className="text-lg font-semibold mb-1">
+              {isSentView ? "No sent emails" : "No emails to review"}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Generate outreach emails for a campaign to start reviewing.
+              {isSentView
+                ? "No emails have been sent yet for this campaign."
+                : "Generate outreach emails for a campaign to start reviewing."}
             </p>
-            <GenerateDialog campaigns={campaigns} />
+            {!isSentView && <GenerateDialog campaigns={campaigns} />}
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Pending Review</CardTitle>
+            <CardTitle className="text-base">
+              {isSentView ? "Sent" : "Pending Review"}
+              {campaignName && (
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  — {campaignName}
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
-              Click on any email to open the full review experience.
+              {isSentView
+                ? `${outreaches.length} email${outreaches.length !== 1 ? "s" : ""} sent.`
+                : "Click on any email to open the full review experience."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -172,9 +202,15 @@ export default async function OutreachQueuePage({
                   <TableHead>Contact</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Score</TableHead>
+                  {isSentView ? (
+                    <TableHead>Status</TableHead>
+                  ) : (
+                    <TableHead>Score</TableHead>
+                  )}
                   <TableHead>Campaign</TableHead>
-                  <TableHead className="text-right">Created</TableHead>
+                  <TableHead className="text-right">
+                    {isSentView ? "Sent" : "Created"}
+                  </TableHead>
                   <TableHead className="w-8" />
                 </TableRow>
               </TableHeader>
@@ -210,15 +246,26 @@ export default async function OutreachQueuePage({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {outreach.personalizationScore && (
+                      {isSentView ? (
                         <Badge
                           variant="secondary"
                           className={
-                            scoreColors[outreach.personalizationScore] ?? ""
+                            outreachStatusColors[outreach.status] ?? ""
                           }
                         >
-                          {outreach.personalizationScore}
+                          {outreach.status === "FAILED" ? "Bounced" : "Sent"}
                         </Badge>
+                      ) : (
+                        outreach.personalizationScore && (
+                          <Badge
+                            variant="secondary"
+                            className={
+                              scoreColors[outreach.personalizationScore] ?? ""
+                            }
+                          >
+                            {outreach.personalizationScore}
+                          </Badge>
+                        )
                       )}
                     </TableCell>
                     <TableCell>
@@ -229,7 +276,11 @@ export default async function OutreachQueuePage({
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatRelativeTime(outreach.createdAt)}
+                        {formatRelativeTime(
+                          isSentView && outreach.sentAt
+                            ? outreach.sentAt
+                            : outreach.createdAt
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

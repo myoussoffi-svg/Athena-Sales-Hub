@@ -371,6 +371,7 @@ export default async function OutreachReviewPage({
       <ReviewActions
         outreachId={outreach.id}
         hookUsed={outreach.hookUsed ?? ""}
+        campaignType={outreach.campaign?.type ?? ""}
         prevId={prevId}
         nextId={nextId}
         currentIndex={currentIndex + 1}

@@ -34,6 +34,7 @@ export function GenerateDialog({ campaigns }: { campaigns: Campaign[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [emailMode, setEmailMode] = useState<"template" | "ai">("template");
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<{
     count: number;
@@ -54,7 +55,10 @@ export function GenerateDialog({ campaigns }: { campaigns: Campaign[] }) {
       const res = await fetch("/api/outreach/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaignId: selectedCampaignId }),
+        body: JSON.stringify({
+          campaignId: selectedCampaignId,
+          useTemplate: emailMode === "template",
+        }),
       });
 
       const data = await res.json();
@@ -80,6 +84,7 @@ export function GenerateDialog({ campaigns }: { campaigns: Campaign[] }) {
       setOpen(false);
       setResult(null);
       setSelectedCampaignId("");
+      setEmailMode("template");
     }
   };
 
@@ -133,6 +138,45 @@ export function GenerateDialog({ campaigns }: { campaigns: Campaign[] }) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Email mode selector */}
+              {selectedCampaignId && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email Type</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEmailMode("template")}
+                        disabled={isGenerating}
+                        className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                          emailMode === "template"
+                            ? "border-primary bg-primary/10 text-primary font-medium"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        <span className="font-medium block">Standard Template</span>
+                        <span className="text-xs text-muted-foreground">
+                          Same email for all contacts
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEmailMode("ai")}
+                        disabled={isGenerating}
+                        className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                          emailMode === "ai"
+                            ? "border-primary bg-primary/10 text-primary font-medium"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        <span className="font-medium block">AI Personalized</span>
+                        <span className="text-xs text-muted-foreground">
+                          Unique email per contact
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
               {isGenerating && (
                 <div className="space-y-3 pt-2">

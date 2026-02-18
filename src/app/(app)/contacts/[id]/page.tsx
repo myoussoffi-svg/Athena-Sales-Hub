@@ -24,6 +24,7 @@ import {
   Clock,
 } from "lucide-react";
 import { ContactStatusSelect } from "./contact-status-select";
+import { DeleteContactButton } from "./delete-contact-button";
 import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
 
@@ -124,6 +125,10 @@ export default async function ContactDetailPage({
           <ContactStatusSelect
             contactId={contact.id}
             currentStatus={contact.status}
+          />
+          <DeleteContactButton
+            contactId={contact.id}
+            contactName={contact.name}
           />
         </div>
       </div>

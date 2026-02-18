@@ -230,7 +230,7 @@ export function EmailEditor({
         dangerouslySetInnerHTML={{
           __html: `
         .email-preview-content p {
-          margin: 0 0 12px 0;
+          margin: 0 0 1em 0;
           color: #1a1a1a;
         }
         .email-preview-content p:last-child {

@@ -4,6 +4,11 @@ import { prisma } from "@/lib/db";
 import { getActiveWorkspaceId } from "@/lib/workspace";
 import { generateEmail } from "@/lib/claude";
 import { generateVoiceProfile } from "@/lib/voice-matching";
+import {
+  SCHOOL_ORG_TEMPLATE_PLAIN,
+  SCHOOL_ORG_TEMPLATE_HTML,
+  SCHOOL_ORG_TEMPLATE_SUBJECT_PREFIX,
+} from "@/lib/templates";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest) {
@@ -24,6 +29,7 @@ export async function POST(request: NextRequest) {
   const { campaignId, contactIds } = body as {
     campaignId: string;
     contactIds?: string[];
+    useTemplate?: boolean;
   };
 
   if (!campaignId) {
@@ -102,17 +108,7 @@ export async function POST(request: NextRequest) {
     high: PersonScore.HIGH,
   };
 
-  // School org campaigns use a fixed template instead of AI generation
-  const schoolOrgTypes = ["finance_club", "faculty_career_services", "student_direct"];
-  const isSchoolOrg = schoolOrgTypes.includes(campaign.type);
-
-  const SCHOOL_ORG_TEMPLATE_PLAIN = `Hi,\n\nI'm reaching out with a new platform that we put together, Athena, a training and recruiting platform aimed at helping students find roles in banking and PE. Athena is an online IB/PE career platform, led by ex-banking and PE professionals, that covers the full technical foundation (modeling, valuation, LBOs, M&A), but is designed around getting hired. The platform gives students real reps with applications of technical skills and includes realistic interview simulations, a resume feedback portal, and an AI-supported outreach CRM that helps students generate and send bulk emails to finance contacts.\n\nWe are currently finalizing a selective program that pairs top Athena performers with experienced mentors and boutique investment banking internship opportunities. We're starting by sharing Athena with student organizations as an added resource for motivated members recruiting for IB, M&A and private equity roles. I am including a demo for you to see if you would like to take a look: https://learn.athena.pe/preview/ib\n\nWould this be of interest to any students in your program? If so, we might also be able to provide discounts if multiple members are interested.\n\nBest,\nMontana\nATHENA\nMontana Youssoffi\nCo-Founder\nMontana@athena.pe`;
-
-  const SCHOOL_ORG_TEMPLATE_HTML = `<p>Hi,</p>
-<p>I'm reaching out with a new platform that we put together, Athena, a training and recruiting platform aimed at helping students find roles in banking and PE. Athena is an online IB/PE career platform, led by ex-banking and PE professionals, that covers the full technical foundation (modeling, valuation, LBOs, M&amp;A), but is designed around getting hired. The platform gives students real reps with applications of technical skills and includes realistic interview simulations, a resume feedback portal, and an AI-supported outreach CRM that helps students generate and send bulk emails to finance contacts.</p>
-<p>We are currently finalizing a selective program that pairs top Athena performers with experienced mentors and boutique investment banking internship opportunities. We're starting by sharing Athena with student organizations as an added resource for motivated members recruiting for IB, M&amp;A and private equity roles. I am including a demo for you to see if you would like to take a look: <a href="https://learn.athena.pe/preview/ib">https://learn.athena.pe/preview/ib</a></p>
-<p>Would this be of interest to any students in your program? If so, we might also be able to provide discounts if multiple members are interested.</p>
-<p>Best,<br>Montana<br>ATHENA<br>Montana Youssoffi<br>Co-Founder<br>Montana@athena.pe</p>`;
+  const useTemplate = body.useTemplate === true;
 
   // Process sequentially to avoid Claude API rate limits
   let generated = 0;
@@ -147,9 +143,9 @@ export async function POST(request: NextRequest) {
       let tone: string;
       let personalizationScore: PersonScore;
 
-      if (isSchoolOrg && emailType === "initial") {
-        // Use fixed template for school org initial outreach
-        subject = `Athena - ${contact.organization || contact.name}`;
+      if (useTemplate) {
+        // Use fixed standard template
+        subject = `${SCHOOL_ORG_TEMPLATE_SUBJECT_PREFIX} - ${contact.organization || contact.name}`;
         subjectVariants = [subject];
         bodyHtml = SCHOOL_ORG_TEMPLATE_HTML;
         bodyPlain = SCHOOL_ORG_TEMPLATE_PLAIN;
@@ -219,8 +215,8 @@ export async function POST(request: NextRequest) {
           personalizationScore,
           aiMetadata: {
             generatedAt: new Date().toISOString(),
-            voiceProfileUsed: !isSchoolOrg && !!voiceProfile,
-            templateUsed: isSchoolOrg && emailType === "initial" ? "school_org_standard" : undefined,
+            voiceProfileUsed: !useTemplate && !!voiceProfile,
+            templateUsed: useTemplate ? "school_org_standard" : undefined,
           },
           status: OutreachStatus.DRAFT_CREATED,
         },

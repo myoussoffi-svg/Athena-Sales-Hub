@@ -1,48 +1,17 @@
 import { requireWorkspace } from "@/lib/workspace";
 import { prisma } from "@/lib/db";
 import { ContactStatus } from "@/generated/prisma/client";
-import Link from "next/link";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Users } from "lucide-react";
 import { ContactsToolbar } from "./contacts-toolbar";
+import { ContactsTable } from "./contacts-table";
 import { UploadDialog } from "./upload-dialog";
 import { AddContactDialog } from "./add-contact-dialog";
-
-interface ContactWithRelations {
-  id: string;
-  name: string;
-  email: string;
-  organization: string | null;
-  status: string;
-  lastContactedAt: Date | null;
-  campaign: { id: string; name: string } | null;
-  _count: { outreaches: number };
-}
-
-const contactStatusColors: Record<string, string> = {
-  NEW: "bg-secondary text-secondary-foreground",
-  RESEARCHED: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  OUTREACH_STARTED: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  REPLIED: "bg-green-500/15 text-green-700 dark:text-green-400",
-  MEETING_SCHEDULED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
-  BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-};
 
 interface ContactsPageProps {
   searchParams: Promise<{
@@ -127,77 +96,12 @@ export default async function ContactsPage({
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Organization</TableHead>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Contacted</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(contacts as unknown as ContactWithRelations[]).map((contact) => (
-                  <TableRow
-                    key={contact.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                    <TableCell>
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {contact.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.email}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.organization || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {contact.campaign ? (
-                        <Link
-                          href={`/campaigns/${contact.campaign.id}`}
-                          className="text-sm hover:underline"
-                        >
-                          {contact.campaign.name}
-                        </Link>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={contactStatusColors[contact.status]}
-                      >
-                        {formatContactStatus(contact.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.lastContactedAt
-                        ? new Date(
-                            contact.lastContactedAt,
-                          ).toLocaleDateString()
-                        : "Never"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ContactsTable
+              contacts={JSON.parse(JSON.stringify(contacts))}
+            />
           )}
         </CardContent>
       </Card>
     </div>
   );
-}
-
-function formatContactStatus(status: string): string {
-  return status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 }

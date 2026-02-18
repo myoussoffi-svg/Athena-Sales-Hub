@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   CheckCircle2,
+  FileText,
   Pencil,
   RefreshCw,
   SkipForward,
@@ -19,6 +20,7 @@ import { RegenerateDialog } from "./regenerate-dialog";
 interface ReviewActionsProps {
   outreachId: string;
   hookUsed: string;
+  campaignType: string;
   prevId: string | null;
   nextId: string | null;
   currentIndex: number;
@@ -28,6 +30,7 @@ interface ReviewActionsProps {
 export function ReviewActions({
   outreachId,
   hookUsed,
+  campaignType,
   prevId,
   nextId,
   currentIndex,
@@ -36,6 +39,7 @@ export function ReviewActions({
   const router = useRouter();
   const [isApproving, setIsApproving] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 
   const navigateToNext = useCallback(() => {
@@ -108,6 +112,31 @@ export function ReviewActions({
     }
   }, []);
 
+  const handleUseTemplate = useCallback(async () => {
+    setIsApplyingTemplate(true);
+    try {
+      const res = await fetch(`/api/outreach/${outreachId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "use_template" }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to apply template");
+      }
+
+      toast.success("Standard template applied");
+      router.refresh();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to apply template",
+      );
+    } finally {
+      setIsApplyingTemplate(false);
+    }
+  }, [outreachId, router]);
+
   // ── Keyboard Shortcuts ──────────────────────────────────────────
 
   useEffect(() => {
@@ -139,6 +168,10 @@ export function ReviewActions({
           e.preventDefault();
           handleSkip();
           break;
+        case "t":
+          e.preventDefault();
+          handleUseTemplate();
+          break;
         case "arrowleft":
           e.preventDefault();
           if (prevId) router.push(`/outreach/${prevId}`);
@@ -152,7 +185,7 @@ export function ReviewActions({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleApprove, handleEdit, handleSkip, prevId, nextId, router]);
+  }, [handleApprove, handleEdit, handleSkip, handleUseTemplate, prevId, nextId, router]);
 
   return (
     <>
@@ -220,7 +253,26 @@ export function ReviewActions({
               </kbd>
             </Button>
 
-            {/* Regenerate */}
+            {/* Use Standard Template */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUseTemplate}
+              disabled={isApproving || isApplyingTemplate}
+              className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              {isApplyingTemplate ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              Use Template
+              <kbd className="pointer-events-none ml-1 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-70 sm:inline-flex">
+                T
+              </kbd>
+            </Button>
+
+            {/* Regenerate (AI) */}
             <Button
               variant="outline"
               size="sm"
@@ -229,7 +281,7 @@ export function ReviewActions({
               className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
             >
               <RefreshCw className="h-4 w-4" />
-              Regenerate
+              AI Regenerate
               <kbd className="pointer-events-none ml-1 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-70 sm:inline-flex">
                 R
               </kbd>

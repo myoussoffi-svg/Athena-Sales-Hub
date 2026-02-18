@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
-  Megaphone,
   Users,
   Send,
   Globe,
@@ -50,11 +49,6 @@ const navItems = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    label: "Campaigns",
-    href: "/campaigns",
-    icon: Megaphone,
   },
   {
     label: "Contacts",

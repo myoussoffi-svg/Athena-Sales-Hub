@@ -5,6 +5,12 @@ import { getActiveWorkspaceId } from "@/lib/workspace";
 import { generateEmail } from "@/lib/claude";
 import { generateVoiceProfile } from "@/lib/voice-matching";
 import { enqueueEmail } from "@/lib/send-queue";
+import {
+  isSchoolOrgCampaign,
+  SCHOOL_ORG_TEMPLATE_PLAIN,
+  SCHOOL_ORG_TEMPLATE_HTML,
+  SCHOOL_ORG_TEMPLATE_SUBJECT_PREFIX,
+} from "@/lib/templates";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
 
 // ─── GET: Single outreach with full context ─────────────────────────
@@ -124,6 +130,36 @@ export async function PATCH(
     const updated = await prisma.outreach.update({
       where: { id },
       data: { status: OutreachStatus.CANCELLED },
+    });
+
+    return NextResponse.json(updated);
+  }
+
+  // ── Action: Use Standard Template ──────────────────────────────
+  if (body.action === "use_template") {
+    const contactOrg = outreach.contact.organization || outreach.contact.name;
+    const subject = `${SCHOOL_ORG_TEMPLATE_SUBJECT_PREFIX} - ${contactOrg}`;
+
+    const updated = await prisma.outreach.update({
+      where: { id },
+      data: {
+        subject,
+        subjectVariants: [subject],
+        bodyHtml: SCHOOL_ORG_TEMPLATE_HTML,
+        bodyPlain: SCHOOL_ORG_TEMPLATE_PLAIN,
+        hookUsed: "Standard school org template",
+        tone: "warm professional",
+        personalizationScore: PersonScore.MEDIUM,
+        aiMetadata: {
+          generatedAt: new Date().toISOString(),
+          templateUsed: "school_org_standard",
+        },
+        status: OutreachStatus.DRAFT_CREATED,
+      },
+      include: {
+        contact: true,
+        campaign: { select: { id: true, name: true, type: true } },
+      },
     });
 
     return NextResponse.json(updated);
