@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import Papa from "papaparse";
 
 interface CsvRow {
@@ -16,24 +15,9 @@ interface CsvRow {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json({ error: "No workspace selected" }, { status: 400 });
-  }
-
-  const membership = await prisma.workspaceMember.findUnique({
-    where: {
-      workspaceId_userId: { workspaceId, userId: session.user.id },
-    },
-  });
-  if (!membership) {
-    return NextResponse.json({ error: "Not a member" }, { status: 403 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { user: sessionUser, workspaceId } = result;
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
@@ -119,7 +103,7 @@ export async function POST(request: NextRequest) {
       notes: row.notes?.trim() || null,
       websiteUrl: row.websiteUrl?.trim() || null,
       workspaceId,
-      assignedToId: session.user.id,
+      assignedToId: sessionUser.id,
       campaignId: campaignId || null,
     })),
     skipDuplicates: true,

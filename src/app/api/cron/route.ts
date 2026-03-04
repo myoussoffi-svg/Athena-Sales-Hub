@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import {
   jobProcessSendQueue,
   jobCheckReplies,
@@ -35,6 +36,15 @@ export async function GET(request: NextRequest) {
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Only OWNER can trigger background jobs
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+  if (dbUser?.role !== "OWNER") {
+    return NextResponse.json({ error: "Only OWNER can trigger cron jobs" }, { status: 403 });
   }
 
   // Parse the job parameter

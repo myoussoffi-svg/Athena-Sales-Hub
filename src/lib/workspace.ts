@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "./db";
 import { auth } from "./auth";
 import { redirect } from "next/navigation";
@@ -71,4 +72,32 @@ export async function requireAuth() {
     redirect("/login");
   }
   return session.user;
+}
+
+/**
+ * API route helper: checks auth + workspace cookie + membership.
+ * Returns the user, workspaceId, and membership or a NextResponse error.
+ */
+export async function requireWorkspaceApi() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const workspaceId = await getActiveWorkspaceId();
+  if (!workspaceId) {
+    return { error: NextResponse.json({ error: "No workspace selected" }, { status: 400 }) };
+  }
+
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId, userId: session.user.id },
+    },
+  });
+
+  if (!membership) {
+    return { error: NextResponse.json({ error: "Not a workspace member" }, { status: 403 }) };
+  }
+
+  return { user: session.user, workspaceId, membership };
 }

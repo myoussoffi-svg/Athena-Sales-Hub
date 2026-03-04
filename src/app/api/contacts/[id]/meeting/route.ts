@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import { getCalendarAvailability } from "@/lib/outlook";
 import { generateEmail } from "@/lib/claude";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
@@ -10,20 +9,11 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { user: sessionUser, workspaceId } = result;
 
   const { id: contactId } = await params;
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "No workspace selected" },
-      { status: 400 },
-    );
-  }
 
   // Verify contact belongs to workspace
   const contact = await prisma.contact.findFirst({
@@ -41,7 +31,7 @@ export async function GET(
 
   try {
     const busySlots = await getCalendarAvailability(
-      session.user.id,
+      sessionUser.id,
       startDate,
       endDate,
     );
@@ -62,20 +52,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { user: sessionUser, workspaceId } = result;
 
   const { id: contactId } = await params;
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "No workspace selected" },
-      { status: 400 },
-    );
-  }
 
   const body = await request.json();
   const { proposedTimes } = body as { proposedTimes: string[] };
@@ -173,7 +154,7 @@ export async function POST(
       data: {
         contactId: contact.id,
         campaignId: contact.campaignId,
-        userId: session.user.id,
+        userId: sessionUser.id,
         type: "MEETING_REQUEST",
         subject: result.subject,
         subjectVariants: result.subjectVariants,

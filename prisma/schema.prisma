@@ -20,6 +20,7 @@ model Workspace {
   updatedAt        DateTime @updatedAt
 
   members        WorkspaceMember[]
+  invitations    WorkspaceInvitation[]
   campaigns      Campaign[]
   contacts       Contact[]
   sendingDomains SendingDomain[]
@@ -41,6 +42,7 @@ model User {
   updatedAt               DateTime @updatedAt
 
   workspaces     WorkspaceMember[]
+  invitedMembers WorkspaceInvitation[]
   campaigns      Campaign[]
   contacts       Contact[]
   outreaches     Outreach[]
@@ -108,6 +110,21 @@ model WorkspaceMember {
 enum WorkspaceRole {
   ADMIN
   MEMBER
+}
+
+// ─── Workspace Invitation ────────────────────────────────
+model WorkspaceInvitation {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(MEMBER)
+  invitedById String
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation(fields: [invitedById], references: [id])
+
+  @@unique([workspaceId, email])
 }
 
 // ─── Sending Domain ──────────────────────────────────────────

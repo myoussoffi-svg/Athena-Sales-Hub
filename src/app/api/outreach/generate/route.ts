@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import { generateEmail } from "@/lib/claude";
 import { generateVoiceProfile } from "@/lib/voice-matching";
 import {
@@ -12,18 +11,9 @@ import {
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "No workspace selected" },
-      { status: 400 },
-    );
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { user: sessionUser, workspaceId } = result;
 
   const body = await request.json();
   const { campaignId, contactIds } = body as {
@@ -57,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   // Load voice samples for the user and generate profile if available
   const voiceSamples = await prisma.voiceSample.findMany({
-    where: { workspaceId, userId: session.user.id },
+    where: { workspaceId, userId: sessionUser.id },
     select: { sampleText: true },
   });
 
@@ -199,7 +189,7 @@ export async function POST(request: NextRequest) {
         data: {
           contactId: contact.id,
           campaignId: campaign.id,
-          userId: session.user.id,
+          userId: sessionUser.id,
           type:
             emailType === "initial"
               ? "INITIAL"

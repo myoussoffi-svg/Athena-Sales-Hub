@@ -1,22 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import { ContactStatus, OutreachStatus } from "@/generated/prisma/client";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "No workspace selected" },
-      { status: 400 },
-    );
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { workspaceId } = result;
 
   const body = await request.json();
   const { contactIds, action, status } = body as {

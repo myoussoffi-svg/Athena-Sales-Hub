@@ -2,6 +2,7 @@ import { requireWorkspace } from "@/lib/workspace";
 import { prisma } from "@/lib/db";
 import { VoiceTraining } from "./voice-training";
 import { WorkspaceSettings } from "./workspace-settings";
+import { TeamManagement } from "./team-management";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
   Mic,
   Settings,
   User,
+  Users,
   CheckCircle,
   AlertCircle,
   ExternalLink,
@@ -47,6 +49,29 @@ export default async function SettingsPage() {
     },
   });
 
+  // Load team data for admins
+  const [teamMembers, teamInvitations] =
+    workspaceRole === "ADMIN"
+      ? await Promise.all([
+          prisma.workspaceMember.findMany({
+            where: { workspaceId: workspace.id },
+            include: {
+              user: {
+                select: { id: true, name: true, email: true, image: true, role: true },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          }),
+          prisma.workspaceInvitation.findMany({
+            where: { workspaceId: workspace.id },
+            include: {
+              invitedBy: { select: { name: true, email: true } },
+            },
+            orderBy: { createdAt: "desc" },
+          }),
+        ])
+      : [[], []];
+
   const settings = (workspaceData.settings as Record<string, unknown>) ?? {};
   const voiceProfile = (settings.voiceProfile as string) ?? "";
   const hasMicrosoftConnection = !!fullUser.microsoftRefreshToken;
@@ -72,6 +97,12 @@ export default async function SettingsPage() {
             <TabsTrigger value="workspace" className="gap-1.5">
               <Settings className="h-3.5 w-3.5" />
               Workspace
+            </TabsTrigger>
+          )}
+          {workspaceRole === "ADMIN" && (
+            <TabsTrigger value="team" className="gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Team
             </TabsTrigger>
           )}
           <TabsTrigger value="account" className="gap-1.5">
@@ -101,6 +132,16 @@ export default async function SettingsPage() {
                 (workspaceData.campaignTypes as string[]) ?? []
               }
               initialSettings={settings}
+            />
+          </TabsContent>
+        )}
+
+        {/* Team Tab */}
+        {workspaceRole === "ADMIN" && (
+          <TabsContent value="team">
+            <TeamManagement
+              initialMembers={JSON.parse(JSON.stringify(teamMembers))}
+              initialInvitations={JSON.parse(JSON.stringify(teamInvitations))}
             />
           </TabsContent>
         )}

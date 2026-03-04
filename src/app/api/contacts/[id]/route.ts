@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import { ContactStatus, OutreachStatus } from "@/generated/prisma/client";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json({ error: "No workspace selected" }, { status: 400 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { workspaceId } = result;
 
   const { id } = await params;
 
@@ -51,15 +44,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json({ error: "No workspace selected" }, { status: 400 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { workspaceId } = result;
 
   const { id } = await params;
 
@@ -161,15 +148,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json({ error: "No workspace selected" }, { status: 400 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { workspaceId } = result;
 
   const { id } = await params;
 

@@ -4,8 +4,8 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
-    NEXTAUTH_SECRET: z.string().min(1),
-    NEXTAUTH_URL: z.string().url().optional(),
+    AUTH_SECRET: z.string().min(1),
+    AUTH_URL: z.string().url().optional(),
     AZURE_AD_CLIENT_ID: z.string().min(1),
     AZURE_AD_CLIENT_SECRET: z.string().min(1),
     AZURE_AD_TENANT_ID: z.string().min(1),

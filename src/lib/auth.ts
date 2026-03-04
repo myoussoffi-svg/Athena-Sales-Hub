@@ -57,6 +57,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         }
 
+        // Auto-accept pending workspace invitations
+        const invitations = await prisma.workspaceInvitation.findMany({
+          where: { email: (user.email as string).toLowerCase() },
+        });
+        for (const inv of invitations) {
+          await prisma.workspaceMember.upsert({
+            where: {
+              workspaceId_userId: {
+                workspaceId: inv.workspaceId,
+                userId: user.id as string,
+              },
+            },
+            update: { role: inv.role },
+            create: {
+              workspaceId: inv.workspaceId,
+              userId: user.id as string,
+              role: inv.role,
+            },
+          });
+        }
+        if (invitations.length > 0) {
+          await prisma.workspaceInvitation.deleteMany({
+            where: { email: (user.email as string).toLowerCase() },
+          });
+        }
+
         // Encrypt and store tokens in DB
         if (account.refresh_token) {
           const encryptedRefresh = encrypt(account.refresh_token);

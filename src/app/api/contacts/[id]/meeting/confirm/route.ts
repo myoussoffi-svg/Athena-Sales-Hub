@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getActiveWorkspaceId } from "@/lib/workspace";
+import { requireWorkspaceApi } from "@/lib/workspace";
 import { createCalendarEvent } from "@/lib/outlook";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const result = await requireWorkspaceApi();
+  if ("error" in result) return result.error;
+  const { user: sessionUser, workspaceId } = result;
 
   const { id: contactId } = await params;
-
-  const workspaceId = await getActiveWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "No workspace selected" },
-      { status: 400 },
-    );
-  }
 
   const body = await request.json();
   const { confirmedTime, duration = 30 } = body as {
@@ -50,7 +40,7 @@ export async function POST(
 
   try {
     // Create calendar event in Outlook
-    const eventId = await createCalendarEvent(session.user.id, {
+    const eventId = await createCalendarEvent(sessionUser.id, {
       subject: `Meeting with ${contact.name}${contact.organization ? ` - ${contact.organization}` : ""}`,
       start: startTime,
       end: endTime,
