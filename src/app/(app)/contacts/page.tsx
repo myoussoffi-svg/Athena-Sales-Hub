@@ -50,10 +50,30 @@ export default async function ContactsPage({
     where,
     include: {
       campaign: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true, email: true } },
       _count: { select: { outreaches: true } },
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // Detect duplicates by name + organization (case-insensitive)
+  const dupeKeys = new Set<string>();
+  const seen = new Map<string, number>();
+  for (const c of contacts) {
+    const key = `${(c.name || "").toLowerCase().trim()}::${(c.organization || "").toLowerCase().trim()}`;
+    seen.set(key, (seen.get(key) || 0) + 1);
+  }
+  for (const [key, count] of seen) {
+    if (count > 1) dupeKeys.add(key);
+  }
+  const duplicateIds = new Set(
+    contacts
+      .filter((c) => {
+        const key = `${(c.name || "").toLowerCase().trim()}::${(c.organization || "").toLowerCase().trim()}`;
+        return dupeKeys.has(key);
+      })
+      .map((c) => c.id)
+  );
 
   return (
     <div className="p-6 space-y-6">
@@ -98,6 +118,7 @@ export default async function ContactsPage({
           ) : (
             <ContactsTable
               contacts={JSON.parse(JSON.stringify(contacts))}
+              duplicateIds={Array.from(duplicateIds)}
             />
           )}
         </CardContent>

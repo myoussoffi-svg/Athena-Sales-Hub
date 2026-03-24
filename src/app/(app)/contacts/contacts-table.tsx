@@ -32,16 +32,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { Trash2, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Contact {
   id: string;
   name: string;
   email: string;
   organization: string | null;
+  notes: string | null;
   status: string;
   lastContactedAt: Date | null;
   campaign: { id: string; name: string } | null;
+  assignedTo: { id: string; name: string | null; email: string } | null;
   _count: { outreaches: number };
 }
 
@@ -73,7 +81,8 @@ function formatContactStatus(status: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ContactsTable({ contacts }: { contacts: Contact[] }) {
+export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Contact[]; duplicateIds?: string[] }) {
+  const duplicateSet = new Set(duplicateIds);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -236,6 +245,8 @@ export function ContactsTable({ contacts }: { contacts: Contact[] }) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Organization</TableHead>
+            <TableHead>Owner</TableHead>
+            <TableHead>Notes</TableHead>
             <TableHead>Campaign</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Contacted</TableHead>
@@ -255,18 +266,38 @@ export function ContactsTable({ contacts }: { contacts: Contact[] }) {
                 />
               </TableCell>
               <TableCell>
-                <Link
-                  href={`/contacts/${contact.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {contact.name}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/contacts/${contact.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {contact.name}
+                  </Link>
+                  {duplicateSet.has(contact.id) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Possible duplicate (same name + organization)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {contact.email}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {contact.organization || "-"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {contact.assignedTo?.name || contact.assignedTo?.email || "-"}
+              </TableCell>
+              <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                {contact.notes || "-"}
               </TableCell>
               <TableCell>
                 {contact.campaign ? (
