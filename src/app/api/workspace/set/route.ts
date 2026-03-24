@@ -3,10 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cookies } from "next/headers";
 
-export async function POST(request: NextRequest) {
+async function setWorkspace(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   const workspaceId = request.nextUrl.searchParams.get("id");
@@ -36,5 +36,13 @@ export async function POST(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 365,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.redirect(new URL("/dashboard", request.url));
+}
+
+export async function GET(request: NextRequest) {
+  return setWorkspace(request);
+}
+
+export async function POST(request: NextRequest) {
+  return setWorkspace(request);
 }
