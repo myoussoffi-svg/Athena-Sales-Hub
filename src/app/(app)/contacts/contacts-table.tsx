@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, RefreshCw, Loader2, AlertTriangle, Pencil, Check, X } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -79,6 +79,69 @@ function formatContactStatus(status: string): string {
   return status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function EditableNotesCell({ contactId, initialNotes, onSaved }: { contactId: string; initialNotes: string | null; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initialNotes || "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/contacts/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: value }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      toast.success("Notes saved");
+      setEditing(false);
+      onSaved();
+    } catch {
+      toast.error("Failed to save notes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-start gap-1 min-w-[200px]">
+        <textarea
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); }
+            if (e.key === "Escape") { setValue(initialNotes || ""); setEditing(false); }
+          }}
+          className="flex-1 text-sm border rounded px-2 py-1 min-h-[60px] resize-y bg-background"
+          placeholder="Add notes..."
+        />
+        <div className="flex flex-col gap-0.5 pt-0.5">
+          <button onClick={save} disabled={saving} className="p-0.5 rounded hover:bg-muted">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-green-600" />}
+          </button>
+          <button onClick={() => { setValue(initialNotes || ""); setEditing(false); }} className="p-0.5 rounded hover:bg-muted">
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      className="flex items-center gap-1 cursor-pointer group min-w-[150px] max-w-[250px]"
+    >
+      <span className="text-sm truncate">
+        {initialNotes || <span className="text-muted-foreground italic">Add notes...</span>}
+      </span>
+      <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+    </div>
+  );
 }
 
 export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Contact[]; duplicateIds?: string[] }) {
@@ -246,10 +309,10 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
             <TableHead>Email</TableHead>
             <TableHead>Organization</TableHead>
             <TableHead>Owner</TableHead>
-            <TableHead>Notes</TableHead>
             <TableHead>Campaign</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Contacted</TableHead>
+            <TableHead>Notes</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -296,9 +359,6 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
               <TableCell className="text-muted-foreground">
                 {contact.assignedTo?.name || contact.assignedTo?.email || "-"}
               </TableCell>
-              <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                {contact.notes || "-"}
-              </TableCell>
               <TableCell>
                 {contact.campaign ? (
                   <Link
@@ -323,6 +383,13 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
                 {contact.lastContactedAt
                   ? new Date(contact.lastContactedAt).toLocaleDateString()
                   : "Never"}
+              </TableCell>
+              <TableCell>
+                <EditableNotesCell
+                  contactId={contact.id}
+                  initialNotes={contact.notes}
+                  onSaved={() => router.refresh()}
+                />
               </TableCell>
             </TableRow>
           ))}
