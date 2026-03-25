@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Campaign {
   id: string;
@@ -46,6 +47,8 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [isAthenaMentor, setIsAthenaMentor] = useState(false);
   const [campaignId, setCampaignId] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -66,6 +69,8 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
           location: location.trim() || undefined,
           notes: notes.trim() || undefined,
           websiteUrl: websiteUrl.trim() || undefined,
+          linkedinUrl: linkedinUrl.trim() || undefined,
+          isAthenaMentor,
           campaignId: campaignId && campaignId !== "none" ? campaignId : undefined,
         }),
       });
@@ -94,6 +99,8 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
     setLocation("");
     setNotes("");
     setWebsiteUrl("");
+    setLinkedinUrl("");
+    setIsAthenaMentor(false);
     setCampaignId("");
   }
 
@@ -180,15 +187,37 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="contact-website">Website URL</Label>
-              <Input
-                id="contact-website"
-                type="url"
-                placeholder="https://example.com"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="contact-linkedin">LinkedIn URL</Label>
+                <Input
+                  id="contact-linkedin"
+                  placeholder="https://linkedin.com/in/..."
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="contact-website">Website URL</Label>
+                <Input
+                  id="contact-website"
+                  type="url"
+                  placeholder="https://example.com"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="contact-mentor"
+                checked={isAthenaMentor}
+                onCheckedChange={(checked) => setIsAthenaMentor(checked === true)}
               />
+              <Label htmlFor="contact-mentor" className="text-sm font-normal">
+                Athena Mentor
+              </Label>
             </div>
 
             <div className="grid gap-2">

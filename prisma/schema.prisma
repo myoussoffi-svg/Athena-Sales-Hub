@@ -177,10 +177,11 @@ model Campaign {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy  User       @relation(fields: [createdById], references: [id])
-  contacts   Contact[]
-  outreaches Outreach[]
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  contacts       Contact[]
+  outreaches     Outreach[]
+  campaignLinks  CampaignContact[]
 }
 
 enum CampaignStatus {
@@ -204,6 +205,9 @@ model Contact {
   location               String?
   notes                  String?       @db.Text
   websiteUrl             String?
+  linkedinUrl            String?
+  isAthenaMentor         Boolean       @default(false)
+  skills                 Json?         // array of strings for skillset inventory
   researchData           Json?
   status                 ContactStatus @default(NEW)
   outlookConversationId  String?
@@ -212,13 +216,29 @@ model Contact {
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
 
-  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  assignedTo User?      @relation(fields: [assignedToId], references: [id])
-  outreaches Outreach[]
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign         Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  assignedTo       User?             @relation(fields: [assignedToId], references: [id])
+  outreaches       Outreach[]
+  campaignLinks    CampaignContact[]
 
   @@index([workspaceId, campaignId])
   @@index([workspaceId, status])
+}
+
+// ─── Campaign-Contact (many-to-many with notes) ─────────────
+model CampaignContact {
+  id          String   @id @default(cuid())
+  campaignId  String
+  contactId   String
+  note        String?  @db.Text  // e.g. "approached, not a fit"
+  addedAt     DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([contactId])
 }
 
 enum ContactStatus {
@@ -230,6 +250,7 @@ enum ContactStatus {
   CONVERTED
   NOT_INTERESTED
   BOUNCED
+  ATHENA_REJECTED
 }
 
 // ─── Outreach ────────────────────────────────────────────────

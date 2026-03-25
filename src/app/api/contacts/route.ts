@@ -86,6 +86,8 @@ export async function POST(request: NextRequest) {
     location,
     notes,
     websiteUrl,
+    linkedinUrl,
+    isAthenaMentor,
     campaignId,
   } = body;
 
@@ -119,6 +121,8 @@ export async function POST(request: NextRequest) {
       location: location || null,
       notes: notes || null,
       websiteUrl: websiteUrl || null,
+      linkedinUrl: linkedinUrl || null,
+      isAthenaMentor: isAthenaMentor === true,
       campaignId: campaignId || null,
       workspaceId,
       assignedToId: session.user.id,

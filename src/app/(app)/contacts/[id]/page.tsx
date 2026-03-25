@@ -22,11 +22,14 @@ import {
   Briefcase,
   Search,
   Clock,
+  Linkedin,
+  Award,
 } from "lucide-react";
 import { ContactStatusSelect } from "./contact-status-select";
 import { DeleteContactButton } from "./delete-contact-button";
 import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
+import { CampaignManager } from "./campaign-manager";
 
 interface OutreachItem {
   id: string;
@@ -47,6 +50,7 @@ const contactStatusColors: Record<string, string> = {
   CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
   BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
 };
 
 const outreachStatusColors: Record<string, string> = {
@@ -72,6 +76,10 @@ export default async function ContactDetailPage({
     include: {
       campaign: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true, email: true } },
+      campaignLinks: {
+        include: { campaign: { select: { id: true, name: true, status: true } } },
+        orderBy: { addedAt: "desc" },
+      },
       outreaches: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -85,6 +93,12 @@ export default async function ContactDetailPage({
         },
       },
     },
+  });
+
+  const campaigns = await prisma.campaign.findMany({
+    where: { workspaceId: workspace.id },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   if (!contact) {
@@ -133,6 +147,13 @@ export default async function ContactDetailPage({
         </div>
       </div>
 
+      {/* Campaign Manager */}
+      <CampaignManager
+        contactId={contact.id}
+        campaignLinks={JSON.parse(JSON.stringify(contact.campaignLinks))}
+        allCampaigns={campaigns}
+      />
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Contact Info Card */}
         <Card>
@@ -162,6 +183,14 @@ export default async function ContactDetailPage({
             {contact.location && (
               <InfoRow icon={MapPin} label="Location" value={contact.location} />
             )}
+            {contact.linkedinUrl && (
+              <InfoRow
+                icon={Linkedin}
+                label="LinkedIn"
+                value={contact.linkedinUrl}
+                href={contact.linkedinUrl}
+              />
+            )}
             {contact.websiteUrl && (
               <InfoRow
                 icon={Globe}
@@ -170,19 +199,14 @@ export default async function ContactDetailPage({
                 href={contact.websiteUrl}
               />
             )}
-            {contact.campaign && (
+            {contact.isAthenaMentor && (
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                <div className="h-8 w-8 rounded-md bg-emerald-500/15 flex items-center justify-center">
+                  <Award className="h-4 w-4 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Campaign</p>
-                  <Link
-                    href={`/campaigns/${contact.campaign.id}`}
-                    className="text-sm font-medium hover:underline"
-                  >
-                    {contact.campaign.name}
-                  </Link>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-sm font-medium text-emerald-600">Athena Mentor</p>
                 </div>
               </div>
             )}

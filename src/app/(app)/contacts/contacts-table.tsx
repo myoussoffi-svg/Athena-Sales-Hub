@@ -40,15 +40,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface CampaignLink {
+  id: string;
+  campaignId: string;
+  note: string | null;
+  campaign: { id: string; name: string };
+}
+
 interface Contact {
   id: string;
   name: string;
   email: string;
   organization: string | null;
   notes: string | null;
+  linkedinUrl: string | null;
+  isAthenaMentor: boolean;
   status: string;
   lastContactedAt: Date | null;
   campaign: { id: string; name: string } | null;
+  campaignLinks: CampaignLink[];
   assignedTo: { id: string; name: string | null; email: string } | null;
   _count: { outreaches: number };
 }
@@ -62,6 +72,7 @@ const contactStatusColors: Record<string, string> = {
   CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
   BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
 };
 
 const ALL_STATUSES = [
@@ -73,6 +84,7 @@ const ALL_STATUSES = [
   "CONVERTED",
   "NOT_INTERESTED",
   "BOUNCED",
+  "ATHENA_REJECTED",
 ];
 
 function formatContactStatus(status: string): string {
@@ -360,7 +372,28 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
                 {contact.assignedTo?.name || contact.assignedTo?.email || "-"}
               </TableCell>
               <TableCell>
-                {contact.campaign ? (
+                {contact.campaignLinks && contact.campaignLinks.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {contact.campaignLinks.map((cl) => (
+                      <TooltipProvider key={cl.id}>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Link href={`/campaigns/${cl.campaign.id}`}>
+                              <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                                {cl.campaign.name}
+                              </Badge>
+                            </Link>
+                          </TooltipTrigger>
+                          {cl.note && (
+                            <TooltipContent>
+                              <p>{cl.note}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                  </div>
+                ) : contact.campaign ? (
                   <Link
                     href={`/campaigns/${contact.campaign.id}`}
                     className="text-sm hover:underline"

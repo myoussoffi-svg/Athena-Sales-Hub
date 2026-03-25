@@ -51,6 +51,10 @@ export default async function ContactsPage({
     include: {
       campaign: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true, email: true } },
+      campaignLinks: {
+        include: { campaign: { select: { id: true, name: true } } },
+        orderBy: { addedAt: "desc" },
+      },
       _count: { select: { outreaches: true } },
     },
     orderBy: { createdAt: "desc" },

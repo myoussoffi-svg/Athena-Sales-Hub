@@ -104,6 +104,8 @@ export async function PATCH(
     location,
     notes,
     websiteUrl,
+    linkedinUrl,
+    isAthenaMentor,
     status,
     campaignId,
   } = body;
@@ -132,6 +134,8 @@ export async function PATCH(
       ...(location !== undefined && { location }),
       ...(notes !== undefined && { notes }),
       ...(websiteUrl !== undefined && { websiteUrl }),
+      ...(linkedinUrl !== undefined && { linkedinUrl }),
+      ...(isAthenaMentor !== undefined && { isAthenaMentor }),
       ...(status !== undefined && { status }),
       ...(campaignId !== undefined && { campaignId }),
     },
