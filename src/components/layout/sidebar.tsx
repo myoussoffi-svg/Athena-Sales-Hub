@@ -93,11 +93,8 @@ function SidebarContent({
       {/* Workspace header */}
       <div className="flex h-14 items-center border-b border-border/50 px-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold tracking-[0.35em] text-white leading-tight">
+          <p className="text-[18px] font-bold tracking-[0.35em] text-white leading-tight">
             A T H E N A
-          </p>
-          <p className="truncate text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
-            Outreach Engine
           </p>
         </div>
       </div>
