@@ -12,7 +12,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,15 +91,12 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       {/* Workspace header */}
-      <div className="flex h-14 items-center gap-3 border-b border-border/50 px-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-          <Zap className="size-4 text-primary" />
-        </div>
+      <div className="flex h-14 items-center border-b border-border/50 px-4">
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">
-            {workspace.name}
+          <p className="text-[15px] font-semibold tracking-[0.35em] text-white leading-tight">
+            A T H E N A
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
             Outreach Engine
           </p>
         </div>
@@ -221,9 +217,10 @@ export function AppSidebar({ user, workspace, role }: SidebarProps) {
             />
           </SheetContent>
         </Sheet>
-        <div className="ml-3 flex items-center gap-2">
-          <Zap className="size-4 text-primary" />
-          <span className="text-sm font-semibold">{workspace.name}</span>
+        <div className="ml-3 flex items-center">
+          <span className="text-[14px] font-semibold tracking-[0.35em] text-foreground">
+            A T H E N A
+          </span>
         </div>
       </div>
 
