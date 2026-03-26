@@ -32,7 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, RefreshCw, Loader2, AlertTriangle, Pencil, Check, X } from "lucide-react";
+import { Trash2, RefreshCw, Loader2, AlertTriangle, Pencil, Check, X, Star } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
 import {
   Tooltip,
   TooltipContent,
@@ -55,6 +56,7 @@ interface Contact {
   notes: string | null;
   linkedinUrl: string | null;
   isAthenaMentor: boolean;
+  rating: number | null;
   status: string;
   lastContactedAt: Date | null;
   campaign: { id: string; name: string } | null;
@@ -91,6 +93,28 @@ function formatContactStatus(status: string): string {
   return status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function InlineStarRating({ contactId, initialRating, onSaved }: { contactId: string; initialRating: number | null; onSaved: () => void }) {
+  const [rating, setRating] = useState(initialRating);
+
+  async function handleChange(newRating: number | null) {
+    setRating(newRating);
+    try {
+      const res = await fetch(`/api/contacts/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: newRating }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      onSaved();
+    } catch {
+      setRating(initialRating);
+      toast.error("Failed to save rating");
+    }
+  }
+
+  return <StarRating value={rating} onChange={handleChange} />;
 }
 
 function EditableNotesCell({ contactId, initialNotes, onSaved }: { contactId: string; initialNotes: string | null; onSaved: () => void }) {
@@ -323,6 +347,7 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
             <TableHead>Owner</TableHead>
             <TableHead>Campaign</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Rating</TableHead>
             <TableHead>Last Contacted</TableHead>
             <TableHead>Notes</TableHead>
           </TableRow>
@@ -411,6 +436,13 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
                 >
                   {formatContactStatus(contact.status)}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <InlineStarRating
+                  contactId={contact.id}
+                  initialRating={contact.rating}
+                  onSaved={() => router.refresh()}
+                />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {contact.lastContactedAt

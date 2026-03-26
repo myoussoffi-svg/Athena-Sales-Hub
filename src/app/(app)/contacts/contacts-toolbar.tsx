@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, X, Download } from "lucide-react";
+import { Search, X, Download, Star } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -24,6 +24,7 @@ interface ContactsToolbarProps {
   currentSearch?: string;
   currentCampaignId?: string;
   currentStatus?: string;
+  currentMinRating?: string;
 }
 
 const contactStatuses = [
@@ -42,6 +43,7 @@ export function ContactsToolbar({
   currentSearch,
   currentCampaignId,
   currentStatus,
+  currentMinRating,
 }: ContactsToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,7 +112,7 @@ export function ContactsToolbar({
     }
   }, [searchParams]);
 
-  const hasFilters = currentSearch || currentCampaignId || currentStatus;
+  const hasFilters = currentSearch || currentCampaignId || currentStatus || currentMinRating;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -162,6 +164,26 @@ export function ContactsToolbar({
               {s.label}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={currentMinRating || "all"}
+        onValueChange={(value) => updateParams("minRating", value)}
+      >
+        <SelectTrigger className="w-[160px]">
+          <div className="flex items-center gap-1.5">
+            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+            <SelectValue placeholder="Min rating" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Any rating</SelectItem>
+          <SelectItem value="1">1+ stars</SelectItem>
+          <SelectItem value="2">2+ stars</SelectItem>
+          <SelectItem value="3">3+ stars</SelectItem>
+          <SelectItem value="4">4+ stars</SelectItem>
+          <SelectItem value="5">5 stars</SelectItem>
         </SelectContent>
       </Select>
 

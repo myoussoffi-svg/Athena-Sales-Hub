@@ -207,6 +207,7 @@ model Contact {
   websiteUrl             String?
   linkedinUrl            String?
   isAthenaMentor         Boolean       @default(false)
+  rating                 Int?          // 1-5 star rating for candidate strength
   skills                 Json?         // array of strings for skillset inventory
   researchData           Json?
   status                 ContactStatus @default(NEW)

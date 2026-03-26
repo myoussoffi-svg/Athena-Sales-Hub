@@ -30,6 +30,7 @@ import { DeleteContactButton } from "./delete-contact-button";
 import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
 import { CampaignManager } from "./campaign-manager";
+import { ContactRating } from "./contact-rating";
 
 interface OutreachItem {
   id: string;
@@ -132,6 +133,7 @@ export default async function ContactDetailPage({
           </div>
           <p className="text-sm text-muted-foreground">{contact.email}</p>
         </div>
+        <ContactRating contactId={contact.id} initialRating={contact.rating as number | null} />
         <div className="flex items-center gap-2">
           {contact.status === "REPLIED" && (
             <MeetingDialog contactId={contact.id} contactName={contact.name} />

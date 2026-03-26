@@ -18,6 +18,7 @@ interface ContactsPageProps {
     search?: string;
     campaignId?: string;
     status?: string;
+    minRating?: string;
   }>;
 }
 
@@ -25,7 +26,7 @@ export default async function ContactsPage({
   searchParams,
 }: ContactsPageProps) {
   const { workspace } = await requireWorkspace();
-  const { search, campaignId, status } = await searchParams;
+  const { search, campaignId, status, minRating } = await searchParams;
 
   const campaigns = await prisma.campaign.findMany({
     where: { workspaceId: workspace.id },
@@ -37,6 +38,7 @@ export default async function ContactsPage({
     workspaceId: workspace.id,
     ...(campaignId && { campaignId }),
     ...(status && { status: status as ContactStatus }),
+    ...(minRating && { rating: { gte: parseInt(minRating) } }),
     ...(search && {
       OR: [
         { name: { contains: search, mode: "insensitive" as const } },
@@ -99,6 +101,7 @@ export default async function ContactsPage({
         currentSearch={search}
         currentCampaignId={campaignId}
         currentStatus={status}
+        currentMinRating={minRating}
       />
 
       <Card>
