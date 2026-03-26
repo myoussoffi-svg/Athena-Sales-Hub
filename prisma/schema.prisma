@@ -208,6 +208,8 @@ model Contact {
   linkedinUrl            String?
   isAthenaMentor         Boolean       @default(false)
   rating                 Int?          // 1-5 star rating for candidate strength
+  resumeUrl              String?       // Vercel Blob URL for uploaded resume
+  resumeName             String?       // original filename of the resume
   skills                 Json?         // array of strings for skillset inventory
   researchData           Json?
   status                 ContactStatus @default(NEW)

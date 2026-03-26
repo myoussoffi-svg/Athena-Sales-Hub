@@ -30,6 +30,7 @@ import { DeleteContactButton } from "./delete-contact-button";
 import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
 import { CampaignManager } from "./campaign-manager";
+import { ResumeUpload } from "./resume-upload";
 import { ContactRating } from "./contact-rating";
 
 interface OutreachItem {
@@ -212,6 +213,11 @@ export default async function ContactDetailPage({
                 </div>
               </div>
             )}
+            <ResumeUpload
+              contactId={contact.id}
+              resumeUrl={contact.resumeUrl}
+              resumeName={contact.resumeName}
+            />
             {contact.notes && (
               <>
                 <Separator />
