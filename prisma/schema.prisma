@@ -207,6 +207,7 @@ model Contact {
   websiteUrl             String?
   linkedinUrl            String?
   isAthenaMentor         Boolean       @default(false)
+  isAthenaStudent        Boolean       @default(false)
   rating                 Int?          // 1-5 star rating for candidate strength
   resumeUrl              String?       // Vercel Blob URL for uploaded resume
   resumeName             String?       // original filename of the resume
@@ -254,6 +255,7 @@ enum ContactStatus {
   NOT_INTERESTED
   BOUNCED
   ATHENA_REJECTED
+  CLIENT_REJECTED
 }
 
 // ─── Outreach ────────────────────────────────────────────────

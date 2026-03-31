@@ -50,6 +50,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [isAthenaMentor, setIsAthenaMentor] = useState(false);
+  const [isAthenaStudent, setIsAthenaStudent] = useState(false);
   const [campaignId, setCampaignId] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +75,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
           websiteUrl: websiteUrl.trim() || undefined,
           linkedinUrl: linkedinUrl.trim() || undefined,
           isAthenaMentor,
+          isAthenaStudent,
           campaignId: campaignId && campaignId !== "none" ? campaignId : undefined,
         }),
       });
@@ -126,6 +128,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
     setWebsiteUrl("");
     setLinkedinUrl("");
     setIsAthenaMentor(false);
+    setIsAthenaStudent(false);
     setCampaignId("");
     setResumeFile(null);
   }
@@ -235,15 +238,27 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="contact-mentor"
-                checked={isAthenaMentor}
-                onCheckedChange={(checked) => setIsAthenaMentor(checked === true)}
-              />
-              <Label htmlFor="contact-mentor" className="text-sm font-normal">
-                Athena Mentor
-              </Label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="contact-mentor"
+                  checked={isAthenaMentor}
+                  onCheckedChange={(checked) => setIsAthenaMentor(checked === true)}
+                />
+                <Label htmlFor="contact-mentor" className="text-sm font-normal">
+                  Athena Mentor
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="contact-student"
+                  checked={isAthenaStudent}
+                  onCheckedChange={(checked) => setIsAthenaStudent(checked === true)}
+                />
+                <Label htmlFor="contact-student" className="text-sm font-normal">
+                  Athena Student
+                </Label>
+              </div>
             </div>
 
             <div className="grid gap-2">

@@ -36,6 +36,8 @@ const contactStatuses = [
   { value: "CONVERTED", label: "Converted" },
   { value: "NOT_INTERESTED", label: "Not Interested" },
   { value: "BOUNCED", label: "Bounced" },
+  { value: "ATHENA_REJECTED", label: "Athena Rejected" },
+  { value: "CLIENT_REJECTED", label: "Client Rejected" },
 ];
 
 export function ContactsToolbar({

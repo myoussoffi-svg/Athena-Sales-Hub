@@ -75,6 +75,7 @@ const contactStatusColors: Record<string, string> = {
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
   BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
   ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
+  CLIENT_REJECTED: "bg-stone-500/15 text-stone-700 dark:text-stone-400",
 };
 
 const ALL_STATUSES = [
@@ -87,6 +88,7 @@ const ALL_STATUSES = [
   "NOT_INTERESTED",
   "BOUNCED",
   "ATHENA_REJECTED",
+  "CLIENT_REJECTED",
 ];
 
 function formatContactStatus(status: string): string {

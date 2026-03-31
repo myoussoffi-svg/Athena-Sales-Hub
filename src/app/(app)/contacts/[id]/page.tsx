@@ -23,7 +23,6 @@ import {
   Search,
   Clock,
   Linkedin,
-  Award,
 } from "lucide-react";
 import { ContactStatusSelect } from "./contact-status-select";
 import { DeleteContactButton } from "./delete-contact-button";
@@ -31,6 +30,7 @@ import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
 import { CampaignManager } from "./campaign-manager";
 import { ResumeUpload } from "./resume-upload";
+import { ContactCheckboxes } from "./contact-checkboxes";
 import { ContactRating } from "./contact-rating";
 
 interface OutreachItem {
@@ -53,6 +53,7 @@ const contactStatusColors: Record<string, string> = {
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
   BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
   ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
+  CLIENT_REJECTED: "bg-stone-500/15 text-stone-700 dark:text-stone-400",
 };
 
 const outreachStatusColors: Record<string, string> = {
@@ -202,17 +203,11 @@ export default async function ContactDetailPage({
                 href={contact.websiteUrl}
               />
             )}
-            {contact.isAthenaMentor && (
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md bg-emerald-500/15 flex items-center justify-center">
-                  <Award className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <p className="text-sm font-medium text-emerald-600">Athena Mentor</p>
-                </div>
-              </div>
-            )}
+            <ContactCheckboxes
+              contactId={contact.id}
+              isAthenaMentor={contact.isAthenaMentor}
+              isAthenaStudent={contact.isAthenaStudent}
+            />
             <ResumeUpload
               contactId={contact.id}
               resumeUrl={contact.resumeUrl}
