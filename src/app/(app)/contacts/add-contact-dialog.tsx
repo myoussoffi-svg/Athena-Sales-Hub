@@ -94,7 +94,14 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
           body: formData,
         });
         if (!uploadRes.ok) {
-          toast.error("Contact created but resume upload failed");
+          let message = "Contact created but resume upload failed";
+          try {
+            const data = await uploadRes.json();
+            message = data.error ? `Contact created but: ${data.error}` : message;
+          } catch {
+            // Response may not be JSON
+          }
+          toast.error(message);
         }
       }
 

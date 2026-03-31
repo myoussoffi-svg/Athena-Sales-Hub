@@ -30,8 +30,14 @@ export function ResumeUpload({ contactId, resumeUrl, resumeName }: ResumeUploadP
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Upload failed");
+        let message = "Upload failed";
+        try {
+          const data = await res.json();
+          message = data.error || message;
+        } catch {
+          // Response may not be JSON
+        }
+        throw new Error(message);
       }
 
       toast.success("Resume uploaded");
