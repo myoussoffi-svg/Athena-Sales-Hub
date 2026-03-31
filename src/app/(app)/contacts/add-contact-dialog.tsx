@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, FileText, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Campaign {
@@ -50,6 +51,8 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [isAthenaMentor, setIsAthenaMentor] = useState(false);
   const [campaignId, setCampaignId] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +83,21 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
         throw new Error(data.error || "Failed to create contact");
       }
 
+      const contact = await res.json();
+
+      // Upload resume if one was selected
+      if (resumeFile) {
+        const formData = new FormData();
+        formData.append("file", resumeFile);
+        const uploadRes = await fetch(`/api/contacts/${contact.id}/resume`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          toast.error("Contact created but resume upload failed");
+        }
+      }
+
       setOpen(false);
       resetForm();
       router.refresh();
@@ -102,6 +120,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
     setLinkedinUrl("");
     setIsAthenaMentor(false);
     setCampaignId("");
+    setResumeFile(null);
   }
 
   return (
@@ -235,6 +254,44 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Resume (optional)</Label>
+              {resumeFile ? (
+                <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                  <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+                  <span className="text-sm truncate flex-1">{resumeFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setResumeFile(null)}
+                    className="p-0.5 rounded hover:bg-muted"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start text-muted-foreground font-normal"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Choose PDF or Word document
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setResumeFile(file);
+                  e.target.value = "";
+                }}
+              />
             </div>
 
             <div className="grid gap-2">
