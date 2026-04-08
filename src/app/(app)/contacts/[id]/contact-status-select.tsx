@@ -20,6 +20,7 @@ const contactStatuses = [
   { value: "REPLIED", label: "Replied" },
   { value: "MEETING_SCHEDULED", label: "Meeting Scheduled" },
   { value: "CONVERTED", label: "Converted" },
+  { value: "CONVERTED_HIRED", label: "Converted - Hired" },
   { value: "NOT_INTERESTED", label: "Not Interested" },
   { value: "BOUNCED", label: "Bounced" },
   { value: "ATHENA_REJECTED", label: "Athena Rejected" },

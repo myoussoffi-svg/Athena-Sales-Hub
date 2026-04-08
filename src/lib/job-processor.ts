@@ -313,7 +313,8 @@ async function jobProcessFollowUps(): Promise<void> {
           outreach.contact.status === "REPLIED" ||
           outreach.contact.status === "NOT_INTERESTED" ||
           outreach.contact.status === "MEETING_SCHEDULED" ||
-          outreach.contact.status === "CONVERTED"
+          outreach.contact.status === "CONVERTED" ||
+          outreach.contact.status === "CONVERTED_HIRED"
         ) {
           await prisma.outreach.update({
             where: { id: outreach.id },

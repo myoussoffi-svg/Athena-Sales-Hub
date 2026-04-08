@@ -28,6 +28,7 @@ import { ContactStatusSelect } from "./contact-status-select";
 import { DeleteContactButton } from "./delete-contact-button";
 import { ResearchButton } from "./research-button";
 import { MeetingDialog } from "./meeting-dialog";
+import { EditableNotes } from "./editable-notes";
 import { CampaignManager } from "./campaign-manager";
 import { ResumeUpload } from "./resume-upload";
 import { ContactCheckboxes } from "./contact-checkboxes";
@@ -50,6 +51,7 @@ const contactStatusColors: Record<string, string> = {
   REPLIED: "bg-green-500/15 text-green-700 dark:text-green-400",
   MEETING_SCHEDULED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
   CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  CONVERTED_HIRED: "bg-teal-500/15 text-teal-700 dark:text-teal-400",
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
   BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
   ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
@@ -213,15 +215,7 @@ export default async function ContactDetailPage({
               resumeUrl={contact.resumeUrl}
               resumeName={contact.resumeName}
             />
-            {contact.notes && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                  <p className="text-sm whitespace-pre-wrap">{contact.notes}</p>
-                </div>
-              </>
-            )}
+            <EditableNotes contactId={contact.id} initialNotes={contact.notes} />
           </CardContent>
         </Card>
 
