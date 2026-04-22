@@ -232,7 +232,7 @@ export function MeetingDialog({ contactId, contactName }: MeetingDialogProps) {
           <DialogTitle>
             {step === "availability" && `Schedule Meeting with ${contactName}`}
             {step === "review" && "Review Meeting Request"}
-            {step === "confirmed" && "Meeting Scheduled"}
+            {step === "confirmed" && "Athena Mtg Scheduled"}
           </DialogTitle>
           <DialogDescription>
             {step === "availability" &&
@@ -434,7 +434,7 @@ export function MeetingDialog({ contactId, contactName }: MeetingDialogProps) {
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
             <div className="text-center">
-              <p className="font-semibold">Meeting Scheduled</p>
+              <p className="font-semibold">Athena Mtg Scheduled</p>
               <p className="text-sm text-muted-foreground mt-1">
                 A calendar event has been created and an invite sent to{" "}
                 {contactName}.

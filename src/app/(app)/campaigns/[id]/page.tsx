@@ -44,6 +44,9 @@ const contactStatusColors: Record<string, string> = {
   OUTREACH_STARTED: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
   REPLIED: "bg-green-500/15 text-green-700 dark:text-green-400",
   MEETING_SCHEDULED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
+  PRESENT_TO_CLIENT: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400",
+  MEETING_WITH_CLIENT: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
+  FINAL_NEGOTIATIONS: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-400",
   CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
 };

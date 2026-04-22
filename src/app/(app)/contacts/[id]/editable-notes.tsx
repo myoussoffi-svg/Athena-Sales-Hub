@@ -61,14 +61,14 @@ export function EditableNotes({ contactId, initialNotes }: EditableNotesProps) {
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); }
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
                 if (e.key === "Escape") { setValue(initialNotes || ""); setEditing(false); }
               }}
               className="w-full text-sm border rounded-md px-3 py-2 min-h-[80px] resize-y bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Add notes..."
+              placeholder="Add notes... (Cmd/Ctrl+Enter to save)"
             />
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="default" onClick={save} disabled={saving} className="h-7 px-2 text-xs">
+              <Button size="sm" variant="outline" onClick={save} disabled={saving} className="h-7 px-2 text-xs">
                 {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Check className="h-3 w-3 mr-1" />}
                 Save
               </Button>
