@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
     linkedinUrl,
     isAthenaMentor,
     isAthenaStudent,
+    isClientTarget,
     campaignId,
   } = body;
 
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
       linkedinUrl: linkedinUrl || null,
       isAthenaMentor: isAthenaMentor === true,
       isAthenaStudent: isAthenaStudent === true,
+      isClientTarget: isClientTarget === true,
       campaignId: campaignId || null,
       workspaceId,
       assignedToId: session.user.id,

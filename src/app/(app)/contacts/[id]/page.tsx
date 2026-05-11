@@ -228,6 +228,7 @@ export default async function ContactDetailPage({
               contactId={contact.id}
               isAthenaMentor={contact.isAthenaMentor}
               isAthenaStudent={contact.isAthenaStudent}
+              isClientTarget={contact.isClientTarget}
             />
             <ResumeUpload
               contactId={contact.id}

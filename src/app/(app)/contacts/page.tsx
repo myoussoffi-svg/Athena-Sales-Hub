@@ -19,6 +19,7 @@ interface ContactsPageProps {
     campaignId?: string;
     status?: string;
     minRating?: string;
+    clientTarget?: string;
   }>;
 }
 
@@ -26,7 +27,8 @@ export default async function ContactsPage({
   searchParams,
 }: ContactsPageProps) {
   const { workspace } = await requireWorkspace();
-  const { search, campaignId, status, minRating } = await searchParams;
+  const { search, campaignId, status, minRating, clientTarget } =
+    await searchParams;
 
   const campaigns = await prisma.campaign.findMany({
     where: { workspaceId: workspace.id },
@@ -39,6 +41,8 @@ export default async function ContactsPage({
     ...(campaignId && { campaignId }),
     ...(status && { status: status as ContactStatus }),
     ...(minRating && { rating: { gte: parseInt(minRating) } }),
+    ...(clientTarget === "yes" && { isClientTarget: true }),
+    ...(clientTarget === "no" && { isClientTarget: false }),
     ...(search && {
       OR: [
         { name: { contains: search, mode: "insensitive" as const } },
@@ -102,13 +106,16 @@ export default async function ContactsPage({
         currentCampaignId={campaignId}
         currentStatus={status}
         currentMinRating={minRating}
+        currentClientTarget={clientTarget}
       />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
             {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
-            {search || campaignId || status ? " (filtered)" : ""}
+            {search || campaignId || status || minRating || clientTarget
+              ? " (filtered)"
+              : ""}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -117,7 +124,7 @@ export default async function ContactsPage({
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-1">No contacts found</h3>
               <p className="text-sm text-muted-foreground">
-                {search || campaignId || status
+                {search || campaignId || status || minRating || clientTarget
                   ? "Try adjusting your filters."
                   : "Upload a CSV or add contacts manually."}
               </p>

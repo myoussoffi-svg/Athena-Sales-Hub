@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, X, Download, Star } from "lucide-react";
+import { Search, X, Download, Star, Target } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -25,6 +25,7 @@ interface ContactsToolbarProps {
   currentCampaignId?: string;
   currentStatus?: string;
   currentMinRating?: string;
+  currentClientTarget?: string;
 }
 
 const contactStatuses = [
@@ -50,6 +51,7 @@ export function ContactsToolbar({
   currentCampaignId,
   currentStatus,
   currentMinRating,
+  currentClientTarget,
 }: ContactsToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,7 +120,12 @@ export function ContactsToolbar({
     }
   }, [searchParams]);
 
-  const hasFilters = currentSearch || currentCampaignId || currentStatus || currentMinRating;
+  const hasFilters =
+    currentSearch ||
+    currentCampaignId ||
+    currentStatus ||
+    currentMinRating ||
+    currentClientTarget;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -170,6 +177,23 @@ export function ContactsToolbar({
               {s.label}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={currentClientTarget || "all"}
+        onValueChange={(value) => updateParams("clientTarget", value)}
+      >
+        <SelectTrigger className="w-[170px]">
+          <div className="flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5 text-amber-600" />
+            <SelectValue placeholder="Client/Target" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All contacts</SelectItem>
+          <SelectItem value="yes">Client/Target only</SelectItem>
+          <SelectItem value="no">Not Client/Target</SelectItem>
         </SelectContent>
       </Select>
 

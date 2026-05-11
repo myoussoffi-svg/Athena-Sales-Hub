@@ -5,18 +5,25 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Award, GraduationCap } from "lucide-react";
+import { Award, GraduationCap, Target } from "lucide-react";
 
 interface ContactCheckboxesProps {
   contactId: string;
   isAthenaMentor: boolean;
   isAthenaStudent: boolean;
+  isClientTarget: boolean;
 }
 
-export function ContactCheckboxes({ contactId, isAthenaMentor, isAthenaStudent }: ContactCheckboxesProps) {
+export function ContactCheckboxes({
+  contactId,
+  isAthenaMentor,
+  isAthenaStudent,
+  isClientTarget,
+}: ContactCheckboxesProps) {
   const router = useRouter();
   const [mentor, setMentor] = useState(isAthenaMentor);
   const [student, setStudent] = useState(isAthenaStudent);
+  const [clientTarget, setClientTarget] = useState(isClientTarget);
 
   async function update(field: string, value: boolean) {
     try {
@@ -31,12 +38,13 @@ export function ContactCheckboxes({ contactId, isAthenaMentor, isAthenaStudent }
       // Revert on failure
       if (field === "isAthenaMentor") setMentor(!value);
       if (field === "isAthenaStudent") setStudent(!value);
+      if (field === "isClientTarget") setClientTarget(!value);
       toast.error("Failed to update");
     }
   }
 
   return (
-    <div className="flex items-center gap-6">
+    <div className="flex items-center flex-wrap gap-6">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-md bg-emerald-500/15 flex items-center justify-center">
           <Award className="h-4 w-4 text-emerald-600" />
@@ -72,6 +80,25 @@ export function ContactCheckboxes({ contactId, isAthenaMentor, isAthenaStudent }
           />
           <Label htmlFor="detail-student" className="text-sm font-medium cursor-pointer">
             Athena Student
+          </Label>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="h-8 w-8 rounded-md bg-amber-500/15 flex items-center justify-center">
+          <Target className="h-4 w-4 text-amber-600" />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="detail-client-target"
+            checked={clientTarget}
+            onCheckedChange={(checked) => {
+              const val = checked === true;
+              setClientTarget(val);
+              update("isClientTarget", val);
+            }}
+          />
+          <Label htmlFor="detail-client-target" className="text-sm font-medium cursor-pointer">
+            Client/Target
           </Label>
         </div>
       </div>

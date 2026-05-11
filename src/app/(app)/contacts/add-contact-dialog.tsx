@@ -51,6 +51,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [isAthenaMentor, setIsAthenaMentor] = useState(false);
   const [isAthenaStudent, setIsAthenaStudent] = useState(false);
+  const [isClientTarget, setIsClientTarget] = useState(false);
   const [campaignId, setCampaignId] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +77,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
           linkedinUrl: linkedinUrl.trim() || undefined,
           isAthenaMentor,
           isAthenaStudent,
+          isClientTarget,
           campaignId: campaignId && campaignId !== "none" ? campaignId : undefined,
         }),
       });
@@ -129,6 +131,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
     setLinkedinUrl("");
     setIsAthenaMentor(false);
     setIsAthenaStudent(false);
+    setIsClientTarget(false);
     setCampaignId("");
     setResumeFile(null);
   }
@@ -238,7 +241,7 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center flex-wrap gap-6">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="contact-mentor"
@@ -257,6 +260,16 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
                 />
                 <Label htmlFor="contact-student" className="text-sm font-normal">
                   Athena Student
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="contact-client-target"
+                  checked={isClientTarget}
+                  onCheckedChange={(checked) => setIsClientTarget(checked === true)}
+                />
+                <Label htmlFor="contact-client-target" className="text-sm font-normal">
+                  Client/Target
                 </Label>
               </div>
             </div>
