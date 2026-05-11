@@ -33,6 +33,7 @@ import { CampaignManager } from "./campaign-manager";
 import { ResumeUpload } from "./resume-upload";
 import { ContactCheckboxes } from "./contact-checkboxes";
 import { ContactRating } from "./contact-rating";
+import { EditContactDialog } from "./edit-contact-dialog";
 
 interface OutreachItem {
   id: string;
@@ -167,7 +168,22 @@ export default async function ContactDetailPage({
         {/* Contact Info Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Contact Information</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Contact Information</CardTitle>
+              <EditContactDialog
+                contactId={contact.id}
+                initial={{
+                  name: contact.name,
+                  email: contact.email,
+                  title: contact.title,
+                  organization: contact.organization,
+                  orgType: contact.orgType,
+                  location: contact.location,
+                  linkedinUrl: contact.linkedinUrl,
+                  websiteUrl: contact.websiteUrl,
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <InfoRow icon={User} label="Name" value={contact.name} />
