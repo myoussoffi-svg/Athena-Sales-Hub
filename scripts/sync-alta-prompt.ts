@@ -1,14 +1,26 @@
 import { prisma } from "../src/lib/db";
-import { ALTA_SYSTEM_PROMPT } from "../prisma/prompts";
+import {
+  ALTA_SYSTEM_PROMPT,
+  ALTA_BUYER_SYSTEM_PROMPT,
+} from "../prisma/prompts";
 
 async function main() {
+  const existing = await prisma.workspace.findUniqueOrThrow({
+    where: { slug: "alta" },
+    select: { settings: true },
+  });
+  const settings = {
+    ...((existing.settings as Record<string, unknown>) ?? {}),
+    buyerSystemPrompt: ALTA_BUYER_SYSTEM_PROMPT,
+  };
+
   const ws = await prisma.workspace.update({
     where: { slug: "alta" },
-    data: { aiSystemPrompt: ALTA_SYSTEM_PROMPT },
+    data: { aiSystemPrompt: ALTA_SYSTEM_PROMPT, settings },
     select: { name: true, slug: true },
   });
   console.log(
-    `Synced Alta system prompt to live DB (${ws.name} / ${ws.slug}), ${ALTA_SYSTEM_PROMPT.length} chars.`,
+    `Synced Alta prompts to live DB (${ws.name} / ${ws.slug}): seller ${ALTA_SYSTEM_PROMPT.length} chars, buyer ${ALTA_BUYER_SYSTEM_PROMPT.length} chars.`,
   );
 }
 

@@ -101,3 +101,22 @@
 - [x] Next.js production build succeeds (all 30+ routes)
 - [ ] Dev server runs on localhost:3001 (needs DATABASE_URL)
 - [ ] End-to-end test with real Outlook account
+
+## Workstream B — Seller Outreach (in progress, 2026-07-07)
+- [x] Alta voice calibrated: acquisition-only, direct ask, no em dashes, Montana/Sourcealta.com sig (prisma/prompts.ts)
+- [x] One-click "Prepare Drafts" (bulk research + generate) on campaign page
+- [x] CSV upload fix (websiteUrl/orgType were dropped) + Owner/Company aliases
+- [x] Chunked + resumable Prepare Drafts (survives Vercel timeouts on 100+ contacts)
+- [ ] Click-verify the full flow in browser (upload -> prepare -> review -> send)
+- [ ] Sending infra: per-user personal-inbox daily soft-ramp (~5-10/day)
+- [ ] Warmed sending domains (buy + mailboxes + DNS + warmup) to protect primary sourcealta.com
+- [ ] Per-campaign sendMode (Review/Auto) + senderType (PERSONAL/POOL)
+
+## Buyer Outreach (QUEUED — build after seller outreach)
+- Separate "Buyer Outreach" section: pitch Alta's retained buyside sourcing to PE firms + new portfolio cos
+- Source: buyoutdesk.com (friend's PE deal tracker) — rank high-velocity platforms by add-on count
+- Phase 0 blocker: get buyoutdesk API/export from friend (email enrichment is OUT — user finds emails via Apollo himself)
+- Deliverable per target: contact (name/title/firm) + fully-written email; user pastes email into editable "To" field + Approve/Send
+- Build as a SECTION in the Alta workspace (kind flag on Campaign/Contact, allow email-less buyer contacts) + buyer system prompt; reuse generate/review/send
+- New: Deal table, ingestion + velocity ranking, press-release contact extraction (name/title/firm only), editable recipient in review UI (send blocked until email set), buyer prompt, deals dashboard
+- See memory: project_alta_buyer_outreach.md

@@ -170,6 +170,7 @@ model Campaign {
   workspaceId   String
   name          String
   type          String
+  kind          String         @default("seller") // seller | buyer
   description   String?        @db.Text
   cadenceConfig Json           @default("{\"followUp1Days\": 5, \"followUp2Days\": 14}")
   status        CampaignStatus @default(DRAFT)
@@ -198,7 +199,8 @@ model Contact {
   campaignId             String?
   assignedToId           String?
   name                   String
-  email                  String
+  email                  String        @default("")
+  kind                   String        @default("seller") // seller | buyer
   title                  String?
   organization           String?
   orgType                String?

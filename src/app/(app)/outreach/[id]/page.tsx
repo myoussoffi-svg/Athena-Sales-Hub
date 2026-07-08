@@ -376,6 +376,9 @@ export default async function OutreachReviewPage({
         nextId={nextId}
         currentIndex={currentIndex + 1}
         totalCount={queueIds.length}
+        needsRecipient={
+          outreach.contact.kind === "buyer" && !outreach.contact.email
+        }
       />
     </div>
   );

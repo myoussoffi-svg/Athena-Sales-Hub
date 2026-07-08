@@ -326,6 +326,132 @@ ${EMAIL_TYPE_INSTRUCTIONS[input.emailType] ?? ""}`);
   throw new Error("[claude] Email generation failed after all retry attempts");
 }
 
+// ─── Buyer outreach generation ──────────────────────────────────────
+
+export interface BuyerDealContext {
+  dealType: string;
+  buyer?: string | null;
+  target?: string | null;
+  platform?: string | null;
+  industry?: string | null;
+  summary?: string | null;
+}
+
+export interface BuyerEmailInput {
+  buyerSystemPrompt: string;
+  sponsor: string; // PE firm / platform being pitched
+  deals: BuyerDealContext[];
+  contactName?: string; // known first name, if any
+}
+
+/**
+ * Generates a buyside-sourcing outreach email to a PE sponsor, hooked on their
+ * recent deals. Self-contained (separate from the seller generateEmail path)
+ * so the buyer voice can't regress the tested seller flow.
+ */
+export async function generateBuyerEmail(
+  input: BuyerEmailInput,
+): Promise<GeneratedEmail> {
+  const client = new Anthropic();
+
+  const systemPrompt = `${input.buyerSystemPrompt}
+
+## EMAIL GUIDELINES
+- Write like a sharp, busy professional, not a marketing bot.
+- NEVER use em dashes or en dashes (— or –). Use commas or periods. Re-read and remove any dash used as punctuation.
+- Subject lines: 3 to 7 words, specific, no ALL CAPS, no spam words.
+- Wrap each paragraph of body_html in <p>...</p>. Keep it short.`;
+
+  const dealsText = input.deals
+    .map((d, i) => {
+      const parts = [`${i + 1}. [${d.dealType}]`];
+      if (d.buyer) parts.push(`${d.buyer} acquired`);
+      parts.push(d.target ?? "a target");
+      if (d.platform && d.platform !== d.target)
+        parts.push(`(platform: ${d.platform})`);
+      if (d.industry) parts.push(`- sector: ${d.industry}`);
+      let line = parts.join(" ");
+      if (d.summary) line += `\n   ${d.summary}`;
+      return line;
+    })
+    .join("\n");
+
+  const greetingNote = input.contactName
+    ? `The recipient's first name is "${input.contactName}". Open with "Hi ${input.contactName},".`
+    : `The specific recipient is not known yet. Open with "Hi there," and do not invent a name.`;
+
+  const userMessage = `## TASK
+Write an initial buyside-sourcing outreach email to a contact at ${input.sponsor}.
+${greetingNote}
+
+## ${input.sponsor} — RECENT DEALS (use as the hook; do not invent details)
+${dealsText}
+
+Generate the email now using the generate_email tool.`;
+
+  let temperature = 0.7;
+  let attempts = 0;
+  const maxAttempts = 2;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-5-20250929",
+        max_tokens: 2048,
+        temperature,
+        system: systemPrompt,
+        tools: [GENERATE_EMAIL_TOOL],
+        tool_choice: { type: "tool", name: "generate_email" },
+        messages: [{ role: "user", content: userMessage }],
+      });
+
+      const toolUseBlock = response.content.find(
+        (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+      );
+      if (!toolUseBlock || toolUseBlock.name !== "generate_email") {
+        throw new Error("[claude] No generate_email tool_use in buyer response");
+      }
+
+      const toolInput = toolUseBlock.input as Record<string, unknown>;
+      const score = toolInput.personalization_score as string;
+      const personalizationScore = ["low", "medium", "high"].includes(score)
+        ? (score as "low" | "medium" | "high")
+        : "medium";
+
+      let bodyHtml = toolInput.body_html as string;
+      if (!/<[a-z][\s\S]*>/i.test(bodyHtml)) {
+        bodyHtml = bodyHtml
+          .split(/\n{2,}/)
+          .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+          .join("");
+      }
+
+      return {
+        subject: toolInput.subject as string,
+        subjectVariants: [
+          toolInput.subject as string,
+          toolInput.subject_variant_2 as string,
+          toolInput.subject_variant_3 as string,
+        ],
+        bodyHtml,
+        bodyPlain: toolInput.body_plain as string,
+        hookUsed: toolInput.hook_used as string,
+        personalizationScore,
+        tone: toolInput.tone as string,
+      };
+    } catch (error) {
+      if (attempts < maxAttempts) {
+        temperature = 0.5;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("[claude] Buyer email generation failed after retries");
+}
+
 // ─── Reply Classification ───────────────────────────────────────────
 
 export async function classifyReplySentiment(

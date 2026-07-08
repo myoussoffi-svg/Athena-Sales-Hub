@@ -25,7 +25,11 @@ interface ReviewActionsProps {
   nextId: string | null;
   currentIndex: number;
   totalCount: number;
+  /** Buyer contacts start with no recipient — the user pastes it here. */
+  needsRecipient?: boolean;
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function ReviewActions({
   outreachId,
@@ -35,12 +39,15 @@ export function ReviewActions({
   nextId,
   currentIndex,
   totalCount,
+  needsRecipient = false,
 }: ReviewActionsProps) {
   const router = useRouter();
   const [isApproving, setIsApproving] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [recipient, setRecipient] = useState("");
+  const recipientValid = !needsRecipient || EMAIL_RE.test(recipient.trim());
 
   const navigateToNext = useCallback(() => {
     if (nextId) {
@@ -52,12 +59,19 @@ export function ReviewActions({
   }, [nextId, router]);
 
   const handleApprove = useCallback(async () => {
+    if (needsRecipient && !EMAIL_RE.test(recipient.trim())) {
+      toast.error("Add a valid recipient email before sending");
+      return;
+    }
     setIsApproving(true);
     try {
       const res = await fetch(`/api/outreach/${outreachId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
+        body: JSON.stringify({
+          action: "approve",
+          ...(needsRecipient ? { recipientEmail: recipient.trim() } : {}),
+        }),
       });
 
       if (!res.ok) {
@@ -65,7 +79,7 @@ export function ReviewActions({
         throw new Error(data.error || "Failed to approve");
       }
 
-      toast.success("Email approved and queued for sending");
+      toast.success("Email sent");
       navigateToNext();
     } catch (err) {
       toast.error(
@@ -74,7 +88,7 @@ export function ReviewActions({
     } finally {
       setIsApproving(false);
     }
-  }, [outreachId, navigateToNext]);
+  }, [outreachId, navigateToNext, needsRecipient, recipient]);
 
   const handleSkip = useCallback(async () => {
     setIsSkipping(true);
@@ -289,11 +303,22 @@ export function ReviewActions({
 
             <Separator orientation="vertical" className="mx-1 h-5" />
 
+            {/* Recipient (buyer contacts — paste from Apollo) */}
+            {needsRecipient && (
+              <input
+                type="email"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="recipient@firm.com"
+                className="h-9 w-52 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            )}
+
             {/* Approve & Send */}
             <Button
               size="sm"
               onClick={handleApprove}
-              disabled={isApproving || isSkipping}
+              disabled={isApproving || isSkipping || !recipientValid}
               className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
             >
               {isApproving ? (

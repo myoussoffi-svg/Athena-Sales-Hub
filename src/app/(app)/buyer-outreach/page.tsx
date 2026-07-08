@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Building2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { RefreshDealsButton } from "./refresh-deals-button";
+import { DraftBuyerButton } from "./draft-buyer-button";
 
 const dealTypeLabels: Record<string, string> = {
   add_on: "Add-on",
@@ -156,6 +157,7 @@ export default async function BuyerOutreachPage() {
                         {s.addOns} add-on{s.addOns !== 1 ? "s" : ""}
                       </Badge>
                     )}
+                    <DraftBuyerButton sponsor={s.sponsor} />
                   </div>
                 </div>
               ))}

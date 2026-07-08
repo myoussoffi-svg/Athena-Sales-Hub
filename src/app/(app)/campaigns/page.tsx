@@ -12,7 +12,7 @@ export default async function CampaignsPage() {
   const { workspace } = await requireWorkspace();
 
   const campaigns = await prisma.campaign.findMany({
-    where: { workspaceId: workspace.id },
+    where: { workspaceId: workspace.id, kind: "seller" },
     include: {
       _count: {
         select: {

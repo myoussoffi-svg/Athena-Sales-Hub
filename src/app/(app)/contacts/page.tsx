@@ -33,13 +33,14 @@ export default async function ContactsPage({
     await searchParams;
 
   const campaigns = await prisma.campaign.findMany({
-    where: { workspaceId: workspace.id },
+    where: { workspaceId: workspace.id, kind: "seller" },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
 
   const where = {
     workspaceId: workspace.id,
+    kind: "seller",
     ...(campaignId && { campaignId }),
     ...(status && { status: status as ContactStatus }),
     ...(minRating && { rating: { gte: parseInt(minRating) } }),

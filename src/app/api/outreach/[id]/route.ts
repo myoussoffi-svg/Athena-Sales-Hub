@@ -102,6 +102,21 @@ export async function PATCH(
       );
     }
 
+    // Buyer contacts arrive with no recipient — the user pastes it from Apollo
+    // at review time. Set it on the contact before sending.
+    const recipientEmail = (body.recipientEmail as string | undefined)?.trim();
+    if (recipientEmail) {
+      await prisma.contact.update({
+        where: { id: outreach.contactId },
+        data: { email: recipientEmail },
+      });
+    } else if (!outreach.contact.email) {
+      return NextResponse.json(
+        { error: "Add a recipient email before sending" },
+        { status: 400 },
+      );
+    }
+
     await prisma.outreach.update({
       where: { id },
       data: { status: OutreachStatus.APPROVED },
