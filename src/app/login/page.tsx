@@ -1,7 +1,3 @@
-"use client";
-
-import { signIn } from "next-auth/react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,29 +5,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail } from "lucide-react";
+import { getRequestBrand } from "@/lib/branding";
+import { SignInButton } from "./sign-in-button";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Per-domain branding: the Alta domain shows Alta here too, pre-login.
+  const brand = await getRequestBrand();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">
-            Outreach Engine
+            {brand.loginTitle}
           </CardTitle>
           <CardDescription className="text-base">
-            AI-powered sales outreach platform
+            {brand.loginTagline}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            onClick={() => signIn("microsoft-entra-id", { callbackUrl: "/select-workspace" })}
-            className="w-full h-12 text-base"
-            size="lg"
-          >
-            <Mail className="mr-2 h-5 w-5" />
-            Sign in with Microsoft
-          </Button>
+          <SignInButton />
           <p className="text-center text-sm text-muted-foreground">
             Sign in with your Microsoft account to connect Outlook
           </p>

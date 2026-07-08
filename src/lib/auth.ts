@@ -6,6 +6,10 @@ import { encrypt } from "./encryption";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // Multi-domain: derive callback URLs from the incoming Host header so OAuth
+  // works on both the Vercel URL and outreachapp.sourcealta.com. AUTH_URL is
+  // intentionally left unset so it never pins to a single domain.
+  trustHost: true,
   providers: [
     MicrosoftEntraID({
       clientId: process.env.AZURE_AD_CLIENT_ID!,

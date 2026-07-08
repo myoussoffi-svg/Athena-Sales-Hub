@@ -33,9 +33,13 @@ interface Campaign {
 
 interface AddContactDialogProps {
   campaigns: Campaign[];
+  isRecruiting: boolean;
 }
 
-export function AddContactDialog({ campaigns }: AddContactDialogProps) {
+export function AddContactDialog({
+  campaigns,
+  isRecruiting,
+}: AddContactDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -242,26 +246,30 @@ export function AddContactDialog({ campaigns }: AddContactDialogProps) {
             </div>
 
             <div className="flex items-center flex-wrap gap-6">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="contact-mentor"
-                  checked={isAthenaMentor}
-                  onCheckedChange={(checked) => setIsAthenaMentor(checked === true)}
-                />
-                <Label htmlFor="contact-mentor" className="text-sm font-normal">
-                  Athena Mentor
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="contact-student"
-                  checked={isAthenaStudent}
-                  onCheckedChange={(checked) => setIsAthenaStudent(checked === true)}
-                />
-                <Label htmlFor="contact-student" className="text-sm font-normal">
-                  Athena Student
-                </Label>
-              </div>
+              {isRecruiting && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="contact-mentor"
+                      checked={isAthenaMentor}
+                      onCheckedChange={(checked) => setIsAthenaMentor(checked === true)}
+                    />
+                    <Label htmlFor="contact-mentor" className="text-sm font-normal">
+                      Athena Mentor
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="contact-student"
+                      checked={isAthenaStudent}
+                      onCheckedChange={(checked) => setIsAthenaStudent(checked === true)}
+                    />
+                    <Label htmlFor="contact-student" className="text-sm font-normal">
+                      Athena Student
+                    </Label>
+                  </div>
+                </>
+              )}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="contact-client-target"

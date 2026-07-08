@@ -106,7 +106,7 @@ export function AddDomainDialog() {
               <Label htmlFor="domain">Domain</Label>
               <Input
                 id="domain"
-                placeholder="e.g., athena-pe.com"
+                placeholder="e.g., yourdomain.com"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 required
@@ -118,7 +118,7 @@ export function AddDomainDialog() {
               <Input
                 id="email-address"
                 type="email"
-                placeholder="e.g., outreach@athena-pe.com"
+                placeholder="e.g., outreach@yourdomain.com"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
                 required
@@ -129,7 +129,7 @@ export function AddDomainDialog() {
               <Label htmlFor="display-name">Display Name</Label>
               <Input
                 id="display-name"
-                placeholder="e.g., Montana from Athena"
+                placeholder="e.g., Your Name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
               />

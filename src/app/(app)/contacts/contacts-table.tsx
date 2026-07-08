@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { statusColor, statusLabel, statusOptions } from "@/lib/contact-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -65,50 +66,8 @@ interface Contact {
   _count: { outreaches: number };
 }
 
-const contactStatusColors: Record<string, string> = {
-  NEW: "bg-secondary text-secondary-foreground",
-  RESEARCHED: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  OUTREACH_STARTED: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  REPLIED: "bg-green-500/15 text-green-700 dark:text-green-400",
-  MEETING_SCHEDULED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  PRESENT_TO_CLIENT: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400",
-  MEETING_WITH_CLIENT: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  FINAL_NEGOTIATIONS: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-400",
-  CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  CONVERTED_HIRED: "bg-teal-500/15 text-teal-700 dark:text-teal-400",
-  NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
-  BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-  ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
-  CLIENT_REJECTED: "bg-stone-500/15 text-stone-700 dark:text-stone-400",
-};
-
-const ALL_STATUSES = [
-  "NEW",
-  "RESEARCHED",
-  "OUTREACH_STARTED",
-  "REPLIED",
-  "MEETING_SCHEDULED",
-  "PRESENT_TO_CLIENT",
-  "MEETING_WITH_CLIENT",
-  "FINAL_NEGOTIATIONS",
-  "CONVERTED",
-  "CONVERTED_HIRED",
-  "NOT_INTERESTED",
-  "BOUNCED",
-  "ATHENA_REJECTED",
-  "CLIENT_REJECTED",
-];
-
-const STATUS_LABEL_OVERRIDES: Record<string, string> = {
-  MEETING_SCHEDULED: "Athena Mtg Scheduled",
-};
-
-function formatContactStatus(status: string): string {
-  return (
-    STATUS_LABEL_OVERRIDES[status] ??
-    status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  );
-}
+// Status colors, labels, and options come from the workspace-aware
+// `@/lib/contact-status` module (Athena recruiting vs Alta buyside).
 
 function InlineStarRating({ contactId, initialRating, onSaved }: { contactId: string; initialRating: number | null; onSaved: () => void }) {
   const [rating, setRating] = useState(initialRating);
@@ -195,7 +154,8 @@ function EditableNotesCell({ contactId, initialNotes, onSaved }: { contactId: st
   );
 }
 
-export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Contact[]; duplicateIds?: string[] }) {
+export function ContactsTable({ contacts, duplicateIds = [], isRecruiting }: { contacts: Contact[]; duplicateIds?: string[]; isRecruiting: boolean }) {
+  const statusChoices = statusOptions(isRecruiting);
   const duplicateSet = new Set(duplicateIds);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -275,7 +235,7 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
 
       const data = await res.json();
       toast.success(
-        `Updated ${data.updated} contact${data.updated !== 1 ? "s" : ""} to ${formatContactStatus(status)}`,
+        `Updated ${data.updated} contact${data.updated !== 1 ? "s" : ""} to ${statusLabel(status, isRecruiting)}`,
       );
       setSelected(new Set());
       router.refresh();
@@ -314,9 +274,9 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
               </div>
             </SelectTrigger>
             <SelectContent>
-              {ALL_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {formatContactStatus(s)}
+              {statusChoices.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -447,9 +407,9 @@ export function ContactsTable({ contacts, duplicateIds = [] }: { contacts: Conta
               <TableCell>
                 <Badge
                   variant="secondary"
-                  className={contactStatusColors[contact.status]}
+                  className={statusColor(contact.status)}
                 >
-                  {formatContactStatus(contact.status)}
+                  {statusLabel(contact.status, isRecruiting)}
                 </Badge>
               </TableCell>
               <TableCell>

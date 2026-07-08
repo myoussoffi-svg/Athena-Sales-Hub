@@ -12,35 +12,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Ban } from "lucide-react";
 import { toast } from "sonner";
-
-const contactStatuses = [
-  { value: "NEW", label: "New" },
-  { value: "RESEARCHED", label: "Researched" },
-  { value: "OUTREACH_STARTED", label: "Outreach Started" },
-  { value: "REPLIED", label: "Replied" },
-  { value: "MEETING_SCHEDULED", label: "Athena Mtg Scheduled" },
-  { value: "PRESENT_TO_CLIENT", label: "Present to Client" },
-  { value: "MEETING_WITH_CLIENT", label: "Meeting with Client" },
-  { value: "FINAL_NEGOTIATIONS", label: "Final Negotiations" },
-  { value: "CONVERTED", label: "Converted" },
-  { value: "CONVERTED_HIRED", label: "Converted - Hired" },
-  { value: "NOT_INTERESTED", label: "Not Interested" },
-  { value: "BOUNCED", label: "Bounced" },
-  { value: "ATHENA_REJECTED", label: "Athena Rejected" },
-  { value: "CLIENT_REJECTED", label: "Client Rejected" },
-];
+import { statusOptions } from "@/lib/contact-status";
 
 interface ContactStatusSelectProps {
   contactId: string;
   currentStatus: string;
+  isRecruiting: boolean;
 }
 
 export function ContactStatusSelect({
   contactId,
   currentStatus,
+  isRecruiting,
 }: ContactStatusSelectProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const contactStatuses = statusOptions(isRecruiting);
 
   async function handleChange(newStatus: string) {
     if (newStatus === currentStatus) return;

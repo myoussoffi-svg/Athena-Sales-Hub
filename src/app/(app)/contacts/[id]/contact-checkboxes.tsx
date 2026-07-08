@@ -12,6 +12,7 @@ interface ContactCheckboxesProps {
   isAthenaMentor: boolean;
   isAthenaStudent: boolean;
   isClientTarget: boolean;
+  isRecruiting: boolean;
 }
 
 export function ContactCheckboxes({
@@ -19,6 +20,7 @@ export function ContactCheckboxes({
   isAthenaMentor,
   isAthenaStudent,
   isClientTarget,
+  isRecruiting,
 }: ContactCheckboxesProps) {
   const router = useRouter();
   const [mentor, setMentor] = useState(isAthenaMentor);
@@ -45,44 +47,48 @@ export function ContactCheckboxes({
 
   return (
     <div className="flex items-center flex-wrap gap-6">
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-md bg-emerald-500/15 flex items-center justify-center">
-          <Award className="h-4 w-4 text-emerald-600" />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="detail-mentor"
-            checked={mentor}
-            onCheckedChange={(checked) => {
-              const val = checked === true;
-              setMentor(val);
-              update("isAthenaMentor", val);
-            }}
-          />
-          <Label htmlFor="detail-mentor" className="text-sm font-medium cursor-pointer">
-            Athena Mentor
-          </Label>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-md bg-blue-500/15 flex items-center justify-center">
-          <GraduationCap className="h-4 w-4 text-blue-600" />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="detail-student"
-            checked={student}
-            onCheckedChange={(checked) => {
-              const val = checked === true;
-              setStudent(val);
-              update("isAthenaStudent", val);
-            }}
-          />
-          <Label htmlFor="detail-student" className="text-sm font-medium cursor-pointer">
-            Athena Student
-          </Label>
-        </div>
-      </div>
+      {isRecruiting && (
+        <>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-md bg-emerald-500/15 flex items-center justify-center">
+              <Award className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="detail-mentor"
+                checked={mentor}
+                onCheckedChange={(checked) => {
+                  const val = checked === true;
+                  setMentor(val);
+                  update("isAthenaMentor", val);
+                }}
+              />
+              <Label htmlFor="detail-mentor" className="text-sm font-medium cursor-pointer">
+                Athena Mentor
+              </Label>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-md bg-blue-500/15 flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="detail-student"
+                checked={student}
+                onCheckedChange={(checked) => {
+                  const val = checked === true;
+                  setStudent(val);
+                  update("isAthenaStudent", val);
+                }}
+              />
+              <Label htmlFor="detail-student" className="text-sm font-medium cursor-pointer">
+                Athena Student
+              </Label>
+            </div>
+          </div>
+        </>
+      )}
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-md bg-amber-500/15 flex items-center justify-center">
           <Target className="h-4 w-4 text-amber-600" />

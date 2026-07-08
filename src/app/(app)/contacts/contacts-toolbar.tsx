@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, X, Download, Star, Target } from "lucide-react";
+import { statusOptions } from "@/lib/contact-status";
 
 interface Campaign {
   id: string;
@@ -26,24 +27,8 @@ interface ContactsToolbarProps {
   currentStatus?: string;
   currentMinRating?: string;
   currentClientTarget?: string;
+  isRecruiting: boolean;
 }
-
-const contactStatuses = [
-  { value: "NEW", label: "New" },
-  { value: "RESEARCHED", label: "Researched" },
-  { value: "OUTREACH_STARTED", label: "Outreach Started" },
-  { value: "REPLIED", label: "Replied" },
-  { value: "MEETING_SCHEDULED", label: "Athena Mtg Scheduled" },
-  { value: "PRESENT_TO_CLIENT", label: "Present to Client" },
-  { value: "MEETING_WITH_CLIENT", label: "Meeting with Client" },
-  { value: "FINAL_NEGOTIATIONS", label: "Final Negotiations" },
-  { value: "CONVERTED", label: "Converted" },
-  { value: "CONVERTED_HIRED", label: "Converted - Hired" },
-  { value: "NOT_INTERESTED", label: "Not Interested" },
-  { value: "BOUNCED", label: "Bounced" },
-  { value: "ATHENA_REJECTED", label: "Athena Rejected" },
-  { value: "CLIENT_REJECTED", label: "Client Rejected" },
-];
 
 export function ContactsToolbar({
   campaigns,
@@ -52,9 +37,11 @@ export function ContactsToolbar({
   currentStatus,
   currentMinRating,
   currentClientTarget,
+  isRecruiting,
 }: ContactsToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const contactStatuses = statusOptions(isRecruiting);
 
   const updateParams = useCallback(
     (key: string, value: string | null) => {

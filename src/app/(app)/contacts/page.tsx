@@ -1,5 +1,6 @@
 import { requireWorkspace } from "@/lib/workspace";
 import { prisma } from "@/lib/db";
+import { isRecruitingWorkspace } from "@/lib/branding";
 import { ContactStatus } from "@/generated/prisma/client";
 import {
   Card,
@@ -27,6 +28,7 @@ export default async function ContactsPage({
   searchParams,
 }: ContactsPageProps) {
   const { workspace } = await requireWorkspace();
+  const isRecruiting = isRecruitingWorkspace(workspace.slug);
   const { search, campaignId, status, minRating, clientTarget } =
     await searchParams;
 
@@ -96,7 +98,7 @@ export default async function ContactsPage({
         </div>
         <div className="flex items-center gap-2">
           <UploadDialog campaigns={campaigns} />
-          <AddContactDialog campaigns={campaigns} />
+          <AddContactDialog campaigns={campaigns} isRecruiting={isRecruiting} />
         </div>
       </div>
 
@@ -107,6 +109,7 @@ export default async function ContactsPage({
         currentStatus={status}
         currentMinRating={minRating}
         currentClientTarget={clientTarget}
+        isRecruiting={isRecruiting}
       />
 
       <Card>
@@ -133,6 +136,7 @@ export default async function ContactsPage({
             <ContactsTable
               contacts={JSON.parse(JSON.stringify(contacts))}
               duplicateIds={Array.from(duplicateIds)}
+              isRecruiting={isRecruiting}
             />
           )}
         </CardContent>

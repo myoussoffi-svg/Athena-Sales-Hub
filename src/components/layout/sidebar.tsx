@@ -41,6 +41,8 @@ interface SidebarProps {
     slug: string;
   };
   role: string;
+  /** Brand wordmark shown in the header (e.g. "ATHENA" or "ALTA"). */
+  brandWordmark: string;
 }
 
 const navItems = [
@@ -84,6 +86,7 @@ function SidebarContent({
   user,
   workspace,
   role,
+  brandWordmark,
   onNavigate,
 }: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -94,7 +97,7 @@ function SidebarContent({
       <div className="flex h-14 items-center border-b border-border/50 px-4">
         <div className="flex-1 min-w-0">
           <p className="text-[18px] font-bold tracking-[0.35em] text-white leading-tight">
-            A T H E N A
+            {brandWordmark}
           </p>
         </div>
       </div>
@@ -185,7 +188,12 @@ function SidebarContent({
   );
 }
 
-export function AppSidebar({ user, workspace, role }: SidebarProps) {
+export function AppSidebar({
+  user,
+  workspace,
+  role,
+  brandWordmark,
+}: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -210,13 +218,14 @@ export function AppSidebar({ user, workspace, role }: SidebarProps) {
               user={user}
               workspace={workspace}
               role={role}
+              brandWordmark={brandWordmark}
               onNavigate={() => setMobileOpen(false)}
             />
           </SheetContent>
         </Sheet>
         <div className="ml-3 flex items-center">
           <span className="text-[14px] font-semibold tracking-[0.35em] text-foreground">
-            A T H E N A
+            {brandWordmark}
           </span>
         </div>
       </div>
@@ -230,6 +239,7 @@ export function AppSidebar({ user, workspace, role }: SidebarProps) {
           user={user}
           workspace={workspace}
           role={role}
+          brandWordmark={brandWordmark}
         />
       </aside>
     </>

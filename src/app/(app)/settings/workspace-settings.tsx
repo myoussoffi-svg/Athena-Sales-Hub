@@ -216,7 +216,7 @@ export function WorkspaceSettings({
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="e.g. Executive Recruiting"
+              placeholder="e.g. Cold Outreach"
               value={newCampaignType}
               onChange={(e) => setNewCampaignType(e.target.value)}
               onKeyDown={(e) => {

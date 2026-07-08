@@ -1,5 +1,7 @@
 import { requireWorkspace } from "@/lib/workspace";
 import { prisma } from "@/lib/db";
+import { isRecruitingWorkspace } from "@/lib/branding";
+import { statusColor, statusLabel } from "@/lib/contact-status";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -45,22 +47,7 @@ interface OutreachItem {
   createdAt: Date;
 }
 
-const contactStatusColors: Record<string, string> = {
-  NEW: "bg-secondary text-secondary-foreground",
-  RESEARCHED: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  OUTREACH_STARTED: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  REPLIED: "bg-green-500/15 text-green-700 dark:text-green-400",
-  MEETING_SCHEDULED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  PRESENT_TO_CLIENT: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400",
-  MEETING_WITH_CLIENT: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  FINAL_NEGOTIATIONS: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-400",
-  CONVERTED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  CONVERTED_HIRED: "bg-teal-500/15 text-teal-700 dark:text-teal-400",
-  NOT_INTERESTED: "bg-red-500/15 text-red-700 dark:text-red-400",
-  BOUNCED: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-  ATHENA_REJECTED: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
-  CLIENT_REJECTED: "bg-stone-500/15 text-stone-700 dark:text-stone-400",
-};
+// Contact status colors/labels come from `@/lib/contact-status` (workspace-aware).
 
 const outreachStatusColors: Record<string, string> = {
   SCHEDULED: "bg-secondary text-secondary-foreground",
@@ -78,6 +65,7 @@ export default async function ContactDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { workspace } = await requireWorkspace();
+  const isRecruiting = isRecruitingWorkspace(workspace.slug);
   const { id } = await params;
 
   const contact = await prisma.contact.findFirst({
@@ -134,9 +122,9 @@ export default async function ContactDetailPage({
             </h1>
             <Badge
               variant="secondary"
-              className={contactStatusColors[contact.status]}
+              className={statusColor(contact.status)}
             >
-              {formatContactStatus(contact.status)}
+              {statusLabel(contact.status, isRecruiting)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">{contact.email}</p>
@@ -144,11 +132,16 @@ export default async function ContactDetailPage({
         <ContactRating contactId={contact.id} initialRating={contact.rating as number | null} />
         <div className="flex items-center gap-2">
           {contact.status === "REPLIED" && (
-            <MeetingDialog contactId={contact.id} contactName={contact.name} />
+            <MeetingDialog
+              contactId={contact.id}
+              contactName={contact.name}
+              isRecruiting={isRecruiting}
+            />
           )}
           <ContactStatusSelect
             contactId={contact.id}
             currentStatus={contact.status}
+            isRecruiting={isRecruiting}
           />
           <DeleteContactButton
             contactId={contact.id}
@@ -229,6 +222,7 @@ export default async function ContactDetailPage({
               isAthenaMentor={contact.isAthenaMentor}
               isAthenaStudent={contact.isAthenaStudent}
               isClientTarget={contact.isClientTarget}
+              isRecruiting={isRecruiting}
             />
             <ResumeUpload
               contactId={contact.id}
@@ -453,17 +447,6 @@ function ResearchField({ label, value }: { label: string; value: string }) {
       </p>
       <p className="text-sm">{value}</p>
     </div>
-  );
-}
-
-const STATUS_LABEL_OVERRIDES: Record<string, string> = {
-  MEETING_SCHEDULED: "Athena Mtg Scheduled",
-};
-
-function formatContactStatus(status: string): string {
-  return (
-    STATUS_LABEL_OVERRIDES[status] ??
-    status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }
 

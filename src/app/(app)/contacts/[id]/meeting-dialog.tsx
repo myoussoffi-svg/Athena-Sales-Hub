@@ -24,6 +24,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { statusLabel } from "@/lib/contact-status";
 
 interface BusySlot {
   start: string;
@@ -33,11 +34,17 @@ interface BusySlot {
 interface MeetingDialogProps {
   contactId: string;
   contactName: string;
+  isRecruiting: boolean;
 }
 
 type Step = "availability" | "review" | "confirmed";
 
-export function MeetingDialog({ contactId, contactName }: MeetingDialogProps) {
+export function MeetingDialog({
+  contactId,
+  contactName,
+  isRecruiting,
+}: MeetingDialogProps) {
+  const meetingScheduledLabel = statusLabel("MEETING_SCHEDULED", isRecruiting);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("availability");
   const [loading, setLoading] = useState(false);
@@ -232,7 +239,7 @@ export function MeetingDialog({ contactId, contactName }: MeetingDialogProps) {
           <DialogTitle>
             {step === "availability" && `Schedule Meeting with ${contactName}`}
             {step === "review" && "Review Meeting Request"}
-            {step === "confirmed" && "Athena Mtg Scheduled"}
+            {step === "confirmed" && meetingScheduledLabel}
           </DialogTitle>
           <DialogDescription>
             {step === "availability" &&
@@ -434,7 +441,7 @@ export function MeetingDialog({ contactId, contactName }: MeetingDialogProps) {
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
             <div className="text-center">
-              <p className="font-semibold">Athena Mtg Scheduled</p>
+              <p className="font-semibold">{meetingScheduledLabel}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 A calendar event has been created and an invite sent to{" "}
                 {contactName}.
