@@ -160,7 +160,8 @@ export async function generateEmail(
 
   systemParts.push(`\n\n## EMAIL GUIDELINES
 - Write like a real person, not a marketing bot
-- NEVER use em dashes. Use commas, periods, or "and" instead.
+- NEVER use em dashes or en dashes (— or –). They are the number-one tell that an email was AI-written. Use commas, periods, or "and", or restructure the sentence. Re-read the final draft and remove any dash used as punctuation.
+- Be direct. Name the actual purpose and ask one clear question. Do not hedge with filler like "just genuinely curious" or "not sure if this is on your radar".
 - Keep emails 150-250 words for initial outreach, under 100 for follow-ups
 - Use the contact's first name only (not full name), or just "Hi," if no personalized opener fits
 - No generic openers like "I hope this email finds you well"
