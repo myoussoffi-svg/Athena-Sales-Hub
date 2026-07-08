@@ -44,24 +44,41 @@ export async function POST(request: NextRequest) {
   const rawText = await file.text();
   const text = rawText.replace(/^\uFEFF/, "");
 
-  // Map common alternative column names to our expected field names
+  // Map column headers to our exact CsvRow field names. Targets MUST match the
+  // camelCase keys read below (websiteUrl, orgType) — otherwise the value is
+  // silently dropped. Headers are trimmed + lowercased before lookup.
   const headerAliases: Record<string, string> = {
-    "organization name": "name",
-    "org name": "name",
+    // name (the person / owner)
+    name: "name",
+    "owner name": "name",
+    owner: "name",
     "contact name": "name",
     "full name": "name",
+    "organization name": "name",
+    "org name": "name",
+    // email
+    email: "email",
     "contact email": "email",
     "email address": "email",
+    // organization (the company)
+    organization: "organization",
+    company: "organization",
+    "company name": "organization",
     "university / school": "organization",
-    "university": "organization",
-    "school": "organization",
-    "org type": "orgtype",
-    "type": "orgtype",
-    "linkedin / website": "websiteurl",
-    "website": "websiteurl",
-    "linkedin": "websiteurl",
-    "website url": "websiteurl",
-    "url": "websiteurl",
+    university: "organization",
+    school: "organization",
+    // websiteUrl (the company website)
+    website: "websiteUrl",
+    "company website": "websiteUrl",
+    "website url": "websiteUrl",
+    websiteurl: "websiteUrl",
+    url: "websiteUrl",
+    "linkedin / website": "websiteUrl",
+    linkedin: "websiteUrl",
+    // orgType
+    "org type": "orgType",
+    type: "orgType",
+    orgtype: "orgType",
   };
 
   const { data, errors } = Papa.parse<CsvRow>(text, {

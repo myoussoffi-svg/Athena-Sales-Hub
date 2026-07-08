@@ -159,8 +159,9 @@ export function UploadDialog({ campaigns }: UploadDialogProps) {
         <DialogHeader>
           <DialogTitle>Upload Contacts</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with columns: name, email, title, organization,
-            orgType, location, notes, websiteUrl
+            Upload a CSV. Recognized columns (any order): Owner Name, Email,
+            Company Name, Company Website, plus optional Title, Location, Notes.
+            Only Owner Name and Email are required.
           </DialogDescription>
         </DialogHeader>
 
@@ -186,7 +187,7 @@ export function UploadDialog({ campaigns }: UploadDialogProps) {
                     ref={fileInputRef}
                     id="csv-file"
                     type="file"
-                    accept=".csv,.xlsx"
+                    accept=".csv"
                     onChange={handleFileChange}
                     className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
                   />
