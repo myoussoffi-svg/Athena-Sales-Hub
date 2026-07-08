@@ -383,3 +383,35 @@ enum JobStatus {
   FAILED
   DEAD
 }
+
+// ─── Buyer Outreach: M&A deal feed (global reference data from Buyout Desk) ───
+model Deal {
+  id              String   @id @default(cuid())
+  externalId      String   @unique // Buyout Desk deal id
+  announcedDate   DateTime
+  dealType        String   // add_on | platform | exit | recap | minority_investment
+  headline        String   @db.Text
+  dek             String?  @db.Text
+  summary         String?  @db.Text
+  body            String?  @db.Text
+  takeaways       Json?
+  buyer           String?
+  target          String?
+  sponsor         String?  // PE firm backing the buyer — the outreach target
+  seller          String?
+  platform        String?
+  industryLabel   String?
+  industrySlug    String?
+  subsectors      Json?
+  dealValue       String?
+  enterpriseValue String?
+  acquirerDomain  String?  // logo.domain — the acquirer's website
+  publicUrl       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sponsor])
+  @@index([announcedDate])
+  @@index([dealType])
+  @@index([industrySlug])
+}
