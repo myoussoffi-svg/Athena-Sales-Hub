@@ -10,10 +10,12 @@ import {
   Send,
   Globe,
   Settings,
+  Target,
   LogOut,
   Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isRecruitingWorkspace } from "@/lib/branding";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -91,6 +93,15 @@ function SidebarContent({
 }: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname();
 
+  // Buyer Outreach is an Alta (buyside) feature — hidden on recruiting workspaces.
+  const items = isRecruitingWorkspace(workspace.slug)
+    ? navItems
+    : [
+        ...navItems.slice(0, 3),
+        { label: "Buyer Outreach", href: "/buyer-outreach", icon: Target },
+        ...navItems.slice(3),
+      ];
+
   return (
     <div className="flex h-full flex-col">
       {/* Workspace header */}
@@ -104,7 +115,7 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
