@@ -10,10 +10,12 @@ interface PrepareDraftsButtonProps {
   campaignId: string;
 }
 
+const CHUNK = 5;
+
 /**
- * One-click drafting pipeline: research all un-researched contacts in the
- * campaign, then generate personalized drafts for anyone without outreach.
- * Drafts land in the review queue (status DRAFT_CREATED) for approval.
+ * One-click drafting pipeline. Processes the campaign in small resumable chunks
+ * (research + draft) so 100+ contacts never hit the serverless timeout. Shows
+ * running progress and stops on completion or a stall (rows that keep failing).
  */
 export function PrepareDraftsButton({ campaignId }: PrepareDraftsButtonProps) {
   const router = useRouter();
@@ -21,77 +23,76 @@ export function PrepareDraftsButton({ campaignId }: PrepareDraftsButtonProps) {
 
   async function prepare() {
     setLoading(true);
-    const toastId = toast.loading("Researching contacts…");
+    const toastId = toast.loading("Preparing drafts…");
+
+    let totalDrafted = 0;
+    let stall = 0;
+    let guard = 0;
+    const GUARD_MAX = 500; // hard cap on chunk calls, way above any real run
 
     try {
-      // 1. Bulk research
-      const researchRes = await fetch(
-        `/api/campaigns/${campaignId}/research-contacts`,
-        { method: "POST" },
-      );
-      if (!researchRes.ok) {
-        const data = await researchRes.json().catch(() => ({}));
-        throw new Error(data.error || "Research step failed");
-      }
-      const research = (await researchRes.json()) as {
-        researched: number;
-        skippedNoUrl: number;
-      };
-
-      // 2. Generate drafts
-      toast.loading("Writing drafts in your voice…", { id: toastId });
-      const genRes = await fetch(`/api/outreach/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaignId }),
-      });
-      const gen = (await genRes.json().catch(() => ({}))) as {
-        count?: number;
-        total?: number;
-        error?: string;
-        errors?: string[];
-      };
-
-      if (!genRes.ok) {
-        // 400 with count:0 means nothing eligible — treat as informational
-        if (gen.error && (gen.count ?? 0) === 0) {
-          toast.info(gen.error, { id: toastId });
-          router.refresh();
-          return;
-        }
-        throw new Error(gen.error || "Draft generation failed");
-      }
-
-      const parts: string[] = [];
-      if (research.researched > 0)
-        parts.push(`researched ${research.researched}`);
-      parts.push(`drafted ${gen.count ?? 0}`);
-      const summary = parts.join(", ");
-      const extra =
-        research.skippedNoUrl > 0
-          ? ` (${research.skippedNoUrl} skipped — no website)`
-          : "";
-
-      toast.success(`Done: ${summary}.${extra}`, {
-        id: toastId,
-        description: "Drafts are in the review queue.",
-        action: {
-          label: "Review",
-          onClick: () => router.push(`/outreach?campaignId=${campaignId}`),
-        },
-      });
-
-      if (gen.errors && gen.errors.length > 0) {
-        toast.warning(
-          `${gen.errors.length} draft(s) had errors and were skipped.`,
+      while (guard++ < GUARD_MAX) {
+        const res = await fetch(
+          `/api/campaigns/${campaignId}/prepare-batch`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ limit: CHUNK }),
+          },
         );
-      }
 
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Chunk failed (${res.status})`);
+        }
+
+        const { processed, drafted, remaining } = (await res.json()) as {
+          processed: number;
+          drafted: number;
+          remaining: number;
+        };
+
+        totalDrafted += drafted;
+
+        // Nothing left to do
+        if (processed === 0 || remaining === 0) {
+          toast.success(`Prepared ${totalDrafted} draft(s).`, {
+            id: toastId,
+            description: "They're in the review queue.",
+            action: {
+              label: "Review",
+              onClick: () =>
+                router.push(`/outreach?campaignId=${campaignId}`),
+            },
+          });
+          break;
+        }
+
+        // Stall guard: a chunk ran but drafted nothing and didn't shrink the
+        // backlog — the leading rows keep failing. Stop and report.
+        if (drafted === 0) {
+          stall++;
+          if (stall >= 2) {
+            toast.warning(
+              `Prepared ${totalDrafted}. ${remaining} could not be prepared (skipped).`,
+              { id: toastId },
+            );
+            break;
+          }
+        } else {
+          stall = 0;
+        }
+
+        toast.loading(`Preparing… ${totalDrafted} done, ${remaining} left`, {
+          id: toastId,
+        });
+      }
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong", {
-        id: toastId,
-      });
+      toast.error(
+        `${err instanceof Error ? err.message : "Something went wrong"}. Prepared ${totalDrafted} so far — click Prepare Drafts again to resume.`,
+        { id: toastId },
+      );
     } finally {
       setLoading(false);
     }
