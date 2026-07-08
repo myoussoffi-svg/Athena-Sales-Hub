@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Mail, Users, Zap } from "lucide-react";
 import { CampaignStatusControls } from "./campaign-status-controls";
+import { PrepareDraftsButton } from "./prepare-drafts-button";
 
 interface CampaignContact {
   id: string;
@@ -181,10 +182,11 @@ export default async function CampaignDetailPage({
           campaignId={campaign.id}
           currentStatus={campaign.status}
         />
+        <PrepareDraftsButton campaignId={campaign.id} />
         <Link href={`/outreach?campaignId=${campaign.id}`}>
           <Button variant="outline">
             <Zap className="h-4 w-4 mr-2" />
-            Generate Outreach
+            Review Queue
           </Button>
         </Link>
         <Link href="/contacts">
