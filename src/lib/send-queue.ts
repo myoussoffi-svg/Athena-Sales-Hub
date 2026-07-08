@@ -39,6 +39,170 @@ export async function enqueueEmail(
   });
 }
 
+// ─── Immediate send (manual Approve & Send) ─────────────────────────
+
+/**
+ * Sends a single outreach synchronously, right now — used by the manual
+ * "Approve & Send" flow so a human click delivers immediately without
+ * depending on the background cron (which doesn't run on Vercel serverless).
+ *
+ * Sends from a warmed SMTP domain if one is assigned/available, otherwise from
+ * the user's own mailbox via Graph. Skips the send-window gate (the user chose
+ * to send now). On success marks SENT, updates the contact, schedules follow-up
+ * rows, and clears any stale PENDING queue job for this outreach.
+ */
+export async function sendOutreachNow(
+  outreachId: string,
+): Promise<{ sent: boolean; error?: string }> {
+  const outreach = await prisma.outreach.findUniqueOrThrow({
+    where: { id: outreachId },
+    include: { contact: true, sendingDomain: true, campaign: true },
+  });
+
+  if (!outreach.contact.email) {
+    return { sent: false, error: "Contact has no email address" };
+  }
+
+  const now = new Date();
+
+  try {
+    // Assign a warmed sending domain if one isn't set and any are available
+    let sendingDomain = outreach.sendingDomain;
+    if (!outreach.sendingDomainId && outreach.campaign) {
+      const pickedId = await pickSendingDomain(outreach.campaign.workspaceId);
+      if (pickedId) {
+        await prisma.outreach.update({
+          where: { id: outreach.id },
+          data: { sendingDomainId: pickedId },
+        });
+        sendingDomain = await prisma.sendingDomain.findUnique({
+          where: { id: pickedId },
+        });
+      }
+    }
+
+    let messageId: string | undefined;
+    let conversationId: string | undefined;
+
+    if (
+      sendingDomain &&
+      sendingDomain.smtpHost &&
+      sendingDomain.smtpUser &&
+      sendingDomain.smtpPass
+    ) {
+      const result = await sendViaSMTP(
+        {
+          host: sendingDomain.smtpHost,
+          port: sendingDomain.smtpPort ?? 587,
+          user: sendingDomain.smtpUser,
+          pass: decrypt(sendingDomain.smtpPass),
+        },
+        {
+          from: sendingDomain.emailAddress,
+          fromName: sendingDomain.displayName ?? undefined,
+          to: outreach.contact.email,
+          subject: outreach.subject ?? "",
+          html: outreach.bodyHtml ?? "",
+        },
+      );
+      messageId = result.messageId;
+    } else {
+      const result = await sendViaOutlook(
+        outreach.userId,
+        outreach.contact.email,
+        outreach.subject ?? "",
+        outreach.bodyHtml ?? "",
+      );
+      conversationId = result.conversationId;
+      messageId = result.internetMessageId;
+    }
+
+    await prisma.outreach.update({
+      where: { id: outreach.id },
+      data: {
+        status: OutreachStatus.SENT,
+        sentAt: now,
+        internetMessageId: messageId,
+        contact: {
+          update: {
+            lastContactedAt: now,
+            ...(conversationId
+              ? { outlookConversationId: conversationId }
+              : {}),
+          },
+        },
+      },
+    });
+
+    if (
+      outreach.contact.status === "NEW" ||
+      outreach.contact.status === "RESEARCHED"
+    ) {
+      await prisma.contact.update({
+        where: { id: outreach.contactId },
+        data: { status: "OUTREACH_STARTED" },
+      });
+    }
+
+    // Schedule follow-ups for an initial send
+    if (outreach.type === "INITIAL" && outreach.campaign) {
+      const cadence = outreach.campaign.cadenceConfig as {
+        followUp1Days?: number;
+        followUp2Days?: number;
+      };
+      const fu1 = new Date(now);
+      fu1.setDate(fu1.getDate() + (cadence.followUp1Days ?? 5));
+      const fu2 = new Date(now);
+      fu2.setDate(fu2.getDate() + (cadence.followUp2Days ?? 14));
+
+      await prisma.outreach.createMany({
+        data: [
+          {
+            contactId: outreach.contactId,
+            campaignId: outreach.campaignId,
+            userId: outreach.userId,
+            sendingDomainId: outreach.sendingDomainId,
+            type: "FOLLOWUP_1",
+            status: OutreachStatus.SCHEDULED,
+            scheduledAt: fu1,
+            parentOutreachId: outreach.id,
+          },
+          {
+            contactId: outreach.contactId,
+            campaignId: outreach.campaignId,
+            userId: outreach.userId,
+            sendingDomainId: outreach.sendingDomainId,
+            type: "FOLLOWUP_2",
+            status: OutreachStatus.SCHEDULED,
+            scheduledAt: fu2,
+            parentOutreachId: outreach.id,
+          },
+        ],
+      });
+    }
+
+    // Clear any stale queued job so it can't double-send later
+    await prisma.jobQueue.updateMany({
+      where: {
+        type: "send_email",
+        status: "PENDING",
+        payload: { path: ["outreachId"], equals: outreach.id },
+      },
+      data: { status: "COMPLETED", completedAt: now },
+    });
+
+    return { sent: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await prisma.outreach.update({
+      where: { id: outreach.id },
+      data: { status: OutreachStatus.FAILED },
+    });
+    console.error(`[send-now] Failed for outreach ${outreachId}: ${message}`);
+    return { sent: false, error: message };
+  }
+}
+
 // ─── Main processor ─────────────────────────────────────────────────
 
 /**

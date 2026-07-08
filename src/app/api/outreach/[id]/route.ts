@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireWorkspaceApi } from "@/lib/workspace";
 import { generateEmail } from "@/lib/claude";
 import { generateVoiceProfile } from "@/lib/voice-matching";
-import { enqueueEmail } from "@/lib/send-queue";
+import { sendOutreachNow } from "@/lib/send-queue";
 import {
   isSchoolOrgCampaign,
   SCHOOL_ORG_TEMPLATE_PLAIN,
@@ -11,6 +11,9 @@ import {
   SCHOOL_ORG_TEMPLATE_SUBJECT_PREFIX,
 } from "@/lib/templates";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
+
+// Approve & Send delivers synchronously via Graph/SMTP; give it headroom.
+export const maxDuration = 30;
 
 // ─── GET: Single outreach with full context ─────────────────────────
 
@@ -88,22 +91,33 @@ export async function PATCH(
 
   // ── Action: Approve & Send ──────────────────────────────────────
   if (body.action === "approve") {
-    if (outreach.status !== "DRAFT_CREATED") {
+    // Allow drafts, or previously-approved items stuck in the queue.
+    if (
+      outreach.status !== "DRAFT_CREATED" &&
+      outreach.status !== "APPROVED"
+    ) {
       return NextResponse.json(
         { error: "Only drafts can be approved" },
         { status: 400 },
       );
     }
 
-    const updated = await prisma.outreach.update({
+    await prisma.outreach.update({
       where: { id },
       data: { status: OutreachStatus.APPROVED },
     });
 
-    // Enqueue for sending
-    await enqueueEmail(id);
+    // Send immediately (does not rely on the background cron)
+    const result = await sendOutreachNow(id);
+    if (!result.sent) {
+      return NextResponse.json(
+        { error: `Send failed: ${result.error}` },
+        { status: 502 },
+      );
+    }
 
-    return NextResponse.json(updated);
+    const sent = await prisma.outreach.findUnique({ where: { id } });
+    return NextResponse.json(sent);
   }
 
   // ── Action: Skip / Cancel ───────────────────────────────────────
