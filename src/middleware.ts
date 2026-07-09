@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Routes that don't require authentication
-const publicRoutes = ["/login", "/api/auth"];
+// Routes that don't require authentication.
+// /api/cron/tick enforces its own CRON_SECRET (called by Vercel Cron / pingers
+// that have no session), so it must bypass the session-cookie gate here.
+const publicRoutes = ["/login", "/api/auth", "/api/cron/tick"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
