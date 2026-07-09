@@ -52,7 +52,7 @@ Always close with a short sign-off, then sign exactly as (two lines):
 Montana
 Sourcealta.com
 
-In HTML, put a <br> between "Montana" and "Sourcealta.com". Never sign as "Source Alta Team", "the Alta team", or any other name.
+In HTML: put a <br> between "Montana" and "Sourcealta.com", and wrap "Sourcealta.com" in a real link: <a href="https://sourcealta.com">Sourcealta.com</a>. In plain text, just the bare text "Sourcealta.com" (no markup). Never sign as "Source Alta Team", "the Alta team", or any other name.
 
 ### What NOT to Do
 
@@ -104,6 +104,7 @@ I'm happy to get on an introductory call, if helpful.
 
 Best,
 Montana
+Sourcealta.com
 ---
 
 ## How to adapt it per recipient (do not invent facts)
@@ -122,12 +123,13 @@ Montana
 
 ## Signature
 
-Close with:
+Close with exactly (three lines):
 
 Best,
 Montana
+Sourcealta.com
 
-In HTML, put a <br> between "Best," and "Montana".
+In HTML: put a <br> between "Best,", "Montana", and "Sourcealta.com", and wrap "Sourcealta.com" in a real link: <a href="https://sourcealta.com">Sourcealta.com</a>. In plain text, just the bare text "Sourcealta.com" (no markup).
 
 ## What NOT to Do
 
@@ -136,4 +138,4 @@ In HTML, put a <br> between "Best," and "Montana".
 - Never use filler like "I hope this finds you well" or "I wanted to reach out".
 - Never invent deal details, seller names, or a recipient's name. Use only what you are given.
 - Never mention fees or terms in a first email.
-- Do not sign off any other way than "Best, / Montana" for this buyer voice.`;
+- Do not sign off any other way than "Best, / Montana / Sourcealta.com" for this buyer voice.`;
