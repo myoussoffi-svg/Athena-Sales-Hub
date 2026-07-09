@@ -87,14 +87,21 @@ export async function POST(request: NextRequest) {
     : null;
 
   if (!pressContact) {
-    pressContact = await extractPressReleaseContact({
-      sponsor,
-      target: primaryDeal.target,
-      platform: primaryDeal.platform,
-      dealType: primaryDeal.dealType,
-      announcedDate: primaryDeal.announcedDate,
-      headline: primaryDeal.headline,
-    });
+    try {
+      pressContact = await extractPressReleaseContact({
+        sponsor,
+        target: primaryDeal.target,
+        platform: primaryDeal.platform,
+        dealType: primaryDeal.dealType,
+        announcedDate: primaryDeal.announcedDate,
+        headline: primaryDeal.headline,
+      });
+    } catch (err) {
+      // Degrade gracefully to no contact found rather than blocking the
+      // whole draft — generateBuyerEmail already handles a null contact.
+      console.error("[buyer/draft] press-contact lookup failed:", err);
+      pressContact = null;
+    }
     if (pressContact) {
       await prisma.deal.update({
         where: { id: primaryDeal.id },
@@ -138,6 +145,42 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // The clicked/named deal leads the list so the email hooks on it
+  // specifically, even if it isn't the sponsor's single most recent deal.
+  const orderedDeals = [
+    primaryDeal,
+    ...deals.filter((d) => d.id !== primaryDeal.id),
+  ].slice(0, 5);
+
+  const dealContext: BuyerDealContext[] = orderedDeals.map((d) => ({
+    dealType: d.dealType,
+    buyer: d.buyer,
+    target: d.target,
+    platform: d.platform,
+    seller: d.seller,
+    industry: d.industryLabel,
+    summary: d.summary,
+  }));
+
+  // Generate the email BEFORE creating anything — if this fails (API error,
+  // exhausted credits, etc.) we return a clean error instead of leaving a
+  // half-finished contact with no draft behind in the campaign.
+  let email;
+  try {
+    email = await generateBuyerEmail({
+      buyerSystemPrompt,
+      sponsor,
+      deals: dealContext,
+      contactName: pressContact?.name.split(" ")[0],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const friendly = message.includes("credit balance")
+      ? "Anthropic API credit balance is too low. Add credits at console.anthropic.com and try again."
+      : `Email generation failed: ${message}`;
+    return NextResponse.json({ error: friendly }, { status: 502 });
+  }
+
   // Buyer contact — email left empty for the user to fill from Apollo.
   // Name/title come from the press-release quote when found; otherwise this
   // falls back to the sponsor firm name and a generic "Hi there," greeting.
@@ -163,30 +206,6 @@ export async function POST(request: NextRequest) {
       notes: contactNotes,
       status: "NEW",
     },
-  });
-
-  // The clicked/named deal leads the list so the email hooks on it
-  // specifically, even if it isn't the sponsor's single most recent deal.
-  const orderedDeals = [
-    primaryDeal,
-    ...deals.filter((d) => d.id !== primaryDeal.id),
-  ].slice(0, 5);
-
-  const dealContext: BuyerDealContext[] = orderedDeals.map((d) => ({
-    dealType: d.dealType,
-    buyer: d.buyer,
-    target: d.target,
-    platform: d.platform,
-    seller: d.seller,
-    industry: d.industryLabel,
-    summary: d.summary,
-  }));
-
-  const email = await generateBuyerEmail({
-    buyerSystemPrompt,
-    sponsor,
-    deals: dealContext,
-    contactName: pressContact?.name.split(" ")[0],
   });
 
   const outreach = await prisma.outreach.create({
