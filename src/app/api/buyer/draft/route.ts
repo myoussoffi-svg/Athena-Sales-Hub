@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireWorkspaceApi } from "@/lib/workspace";
 import { generateBuyerEmail, type BuyerDealContext } from "@/lib/claude";
-import { extractPressReleaseContact } from "@/lib/press-contact";
+import { extractPressReleaseContact, type PressReleaseContact } from "@/lib/press-contact";
 import { isRecruitingWorkspace } from "@/lib/branding";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
 
@@ -36,12 +36,25 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const sponsor = (body.sponsor as string | undefined)?.trim();
+  const dealId = (body.dealId as string | undefined)?.trim() || undefined;
+
+  // A per-row draft (from the Recent Deals feed) names the exact deal to
+  // hook on; a sponsor-level draft (from the leaderboard) uses their most
+  // recent one instead.
+  let namedDeal = null as Awaited<ReturnType<typeof prisma.deal.findUnique>> | null;
+  if (dealId) {
+    namedDeal = await prisma.deal.findUnique({ where: { id: dealId } });
+    if (!namedDeal) {
+      return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    }
+  }
+
+  const sponsor = (namedDeal?.sponsor ?? (body.sponsor as string | undefined))?.trim();
   if (!sponsor) {
     return NextResponse.json({ error: "sponsor is required" }, { status: 400 });
   }
 
-  // Recent deals for this sponsor — the personalization hook
+  // Recent deals for this sponsor — additional context for the email
   const deals = await prisma.deal.findMany({
     where: { sponsor },
     orderBy: { announcedDate: "desc" },
@@ -54,18 +67,47 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Find the quoted contact from the deal's actual press release (Buyout
-  // Desk's own summary has no quotes) — prefers a sponsor investment
-  // professional, falls back to a portco executive, or null if none found.
-  const primaryDeal = deals[0];
-  const pressContact = await extractPressReleaseContact({
-    sponsor,
-    target: primaryDeal.target,
-    platform: primaryDeal.platform,
-    dealType: primaryDeal.dealType,
-    announcedDate: primaryDeal.announcedDate,
-    headline: primaryDeal.headline,
-  });
+  // The specific deal named by dealId, else the sponsor's most recent —
+  // this is the deal the email's hook and contact are drawn from.
+  const primaryDeal = namedDeal ?? deals[0];
+
+  // Reuse the contact cached at ingestion time; only fall back to a live
+  // press-release search (and cache the result for next time) if it's
+  // missing — e.g. an older deal ingested before this cache existed.
+  let pressContact: PressReleaseContact | null = primaryDeal.contactName
+    ? {
+        name: primaryDeal.contactName,
+        title: primaryDeal.contactTitle ?? "",
+        firm: primaryDeal.contactFirm ?? sponsor,
+        sourceType:
+          (primaryDeal.contactSourceType as PressReleaseContact["sourceType"]) ??
+          "sponsor_investment_professional",
+        sourceUrl: primaryDeal.contactSourceUrl ?? undefined,
+      }
+    : null;
+
+  if (!pressContact) {
+    pressContact = await extractPressReleaseContact({
+      sponsor,
+      target: primaryDeal.target,
+      platform: primaryDeal.platform,
+      dealType: primaryDeal.dealType,
+      announcedDate: primaryDeal.announcedDate,
+      headline: primaryDeal.headline,
+    });
+    if (pressContact) {
+      await prisma.deal.update({
+        where: { id: primaryDeal.id },
+        data: {
+          contactName: pressContact.name,
+          contactTitle: pressContact.title,
+          contactFirm: pressContact.firm,
+          contactSourceType: pressContact.sourceType,
+          contactSourceUrl: pressContact.sourceUrl,
+        },
+      });
+    }
+  }
 
   const buyerSystemPrompt = (
     (workspace.settings as Record<string, unknown>)?.buyerSystemPrompt as
@@ -123,7 +165,14 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const dealContext: BuyerDealContext[] = deals.map((d) => ({
+  // The clicked/named deal leads the list so the email hooks on it
+  // specifically, even if it isn't the sponsor's single most recent deal.
+  const orderedDeals = [
+    primaryDeal,
+    ...deals.filter((d) => d.id !== primaryDeal.id),
+  ].slice(0, 5);
+
+  const dealContext: BuyerDealContext[] = orderedDeals.map((d) => ({
     dealType: d.dealType,
     buyer: d.buyer,
     target: d.target,

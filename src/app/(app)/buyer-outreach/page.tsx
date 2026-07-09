@@ -10,10 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Building2, ExternalLink } from "lucide-react";
+import { TrendingUp, Building2, ExternalLink, User } from "lucide-react";
 import Link from "next/link";
 import { RefreshDealsButton } from "./refresh-deals-button";
 import { DraftBuyerButton } from "./draft-buyer-button";
+import { DraftDealButton } from "./draft-deal-button";
 
 const dealTypeLabels: Record<string, string> = {
   add_on: "Add-on",
@@ -117,6 +118,77 @@ export default async function BuyerOutreachPage() {
             />
           </div>
 
+          {/* Recent deals feed */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent Deals</CardTitle>
+              <CardDescription>Latest transactions from the feed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {feed.map((d) => (
+                <div
+                  key={d.id}
+                  className="flex items-start gap-3 rounded-lg border border-border/50 px-3 py-2"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium">{d.headline}</p>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          (dealTypeColors[d.dealType] ?? "") + " text-xs"
+                        }
+                      >
+                        {dealTypeLabels[d.dealType] ?? d.dealType}
+                      </Badge>
+                      {d.industryLabel && (
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {d.industryLabel}
+                        </Badge>
+                      )}
+                    </div>
+                    {d.summary && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {d.summary}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {d.sponsor ? `${d.sponsor} · ` : ""}
+                      {new Date(d.announcedDate).toLocaleDateString()}
+                    </p>
+                    {d.contactName && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <User className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {d.contactName}
+                          {d.contactTitle ? ` — ${d.contactTitle}` : ""}
+                          {d.contactSourceType === "portco_executive"
+                            ? " (portco)"
+                            : ""}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {d.publicUrl && (
+                      <Link
+                        href={d.publicUrl}
+                        target="_blank"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    )}
+                    {d.sponsor &&
+                      (d.dealType === "platform" || d.dealType === "add_on") && (
+                        <DraftDealButton dealId={d.id} sponsor={d.sponsor} />
+                      )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
           {/* Velocity leaderboard */}
           <Card>
             <CardHeader>
@@ -159,59 +231,6 @@ export default async function BuyerOutreachPage() {
                     )}
                     <DraftBuyerButton sponsor={s.sponsor} />
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Recent deals feed */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent Deals</CardTitle>
-              <CardDescription>Latest transactions from the feed</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {feed.map((d) => (
-                <div
-                  key={d.id}
-                  className="flex items-start gap-3 rounded-lg border border-border/50 px-3 py-2"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium">{d.headline}</p>
-                      <Badge
-                        variant="secondary"
-                        className={
-                          (dealTypeColors[d.dealType] ?? "") + " text-xs"
-                        }
-                      >
-                        {dealTypeLabels[d.dealType] ?? d.dealType}
-                      </Badge>
-                      {d.industryLabel && (
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {d.industryLabel}
-                        </Badge>
-                      )}
-                    </div>
-                    {d.summary && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {d.summary}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {d.sponsor ? `${d.sponsor} · ` : ""}
-                      {new Date(d.announcedDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {d.publicUrl && (
-                    <Link
-                      href={d.publicUrl}
-                      target="_blank"
-                      className="text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  )}
                 </div>
               ))}
             </CardContent>

@@ -409,6 +409,16 @@ model Deal {
   enterpriseValue String?
   acquirerDomain  String?  // logo.domain — the acquirer's website
   publicUrl       String?
+
+  // Quoted contact extracted from the deal's actual press release (not
+  // Buyout Desk's own summary, which has no quotes). Populated once at
+  // ingestion time for platform/add_on deals; null if no quote was found.
+  contactName       String?
+  contactTitle      String?
+  contactFirm       String?
+  contactSourceType String? // sponsor_investment_professional | portco_executive
+  contactSourceUrl  String?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

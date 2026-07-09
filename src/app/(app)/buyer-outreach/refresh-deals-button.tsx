@@ -17,7 +17,7 @@ export function RefreshDealsButton() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Refresh failed");
       toast.success(
-        `Pulled ${data.fetched} deals (${data.upserted} saved).`,
+        `Pulled ${data.fetched} deals (${data.upserted} saved, ${data.contactsFound ?? 0} new contacts found).`,
       );
       router.refresh();
     } catch (err) {
