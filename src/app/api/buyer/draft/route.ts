@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireWorkspaceApi } from "@/lib/workspace";
 import { generateBuyerEmail, type BuyerDealContext } from "@/lib/claude";
+import { extractPressReleaseContact } from "@/lib/press-contact";
 import { isRecruitingWorkspace } from "@/lib/branding";
 import { OutreachStatus, PersonScore } from "@/generated/prisma/client";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const personScoreMap: Record<string, PersonScore> = {
   low: PersonScore.LOW,
@@ -39,8 +40,6 @@ export async function POST(request: NextRequest) {
   if (!sponsor) {
     return NextResponse.json({ error: "sponsor is required" }, { status: 400 });
   }
-  const contactName = (body.contactName as string | undefined)?.trim() || undefined;
-  const contactTitle = (body.contactTitle as string | undefined)?.trim() || undefined;
 
   // Recent deals for this sponsor — the personalization hook
   const deals = await prisma.deal.findMany({
@@ -54,6 +53,19 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Find the quoted contact from the deal's actual press release (Buyout
+  // Desk's own summary has no quotes) — prefers a sponsor investment
+  // professional, falls back to a portco executive, or null if none found.
+  const primaryDeal = deals[0];
+  const pressContact = await extractPressReleaseContact({
+    sponsor,
+    target: primaryDeal.target,
+    platform: primaryDeal.platform,
+    dealType: primaryDeal.dealType,
+    announcedDate: primaryDeal.announcedDate,
+    headline: primaryDeal.headline,
+  });
 
   const buyerSystemPrompt = (
     (workspace.settings as Record<string, unknown>)?.buyerSystemPrompt as
@@ -84,23 +96,29 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Buyer contact — email left empty for the user to fill from Apollo
+  // Buyer contact — email left empty for the user to fill from Apollo.
+  // Name/title come from the press-release quote when found; otherwise this
+  // falls back to the sponsor firm name and a generic "Hi there," greeting.
   const primarySector = deals.find((d) => d.industryLabel)?.industryLabel ?? null;
+  const contactNotes = [
+    `PE sponsor. Recent deals: ${deals.map((d) => d.headline).slice(0, 3).join("; ")}`,
+    pressContact
+      ? `Quoted contact source: ${pressContact.sourceType === "sponsor_investment_professional" ? "sponsor investment professional" : "portco executive"} at ${pressContact.firm}${pressContact.sourceUrl ? ` (${pressContact.sourceUrl})` : ""}`
+      : "No quoted contact found in a press release for this deal.",
+  ].join("\n");
+
   const contact = await prisma.contact.create({
     data: {
       workspaceId,
       campaignId: campaign.id,
       assignedToId: sessionUser.id,
       kind: "buyer",
-      name: contactName ?? sponsor,
-      title: contactTitle,
+      name: pressContact?.name ?? sponsor,
+      title: pressContact?.title,
       email: "",
       organization: sponsor,
       orgType: primarySector,
-      notes: `PE sponsor. Recent deals: ${deals
-        .map((d) => d.headline)
-        .slice(0, 3)
-        .join("; ")}`,
+      notes: contactNotes,
       status: "NEW",
     },
   });
@@ -119,7 +137,7 @@ export async function POST(request: NextRequest) {
     buyerSystemPrompt,
     sponsor,
     deals: dealContext,
-    contactName,
+    contactName: pressContact?.name.split(" ")[0],
   });
 
   const outreach = await prisma.outreach.create({
@@ -139,6 +157,9 @@ export async function POST(request: NextRequest) {
         generatedAt: new Date().toISOString(),
         buyerOutreach: true,
         sponsor,
+        pressContact: pressContact
+          ? { name: pressContact.name, title: pressContact.title, firm: pressContact.firm, sourceType: pressContact.sourceType, sourceUrl: pressContact.sourceUrl }
+          : null,
       },
       status: OutreachStatus.DRAFT_CREATED,
     },
