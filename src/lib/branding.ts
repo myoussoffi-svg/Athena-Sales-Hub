@@ -1,5 +1,3 @@
-import { headers } from "next/headers";
-
 /**
  * Per-domain / per-workspace branding.
  *
@@ -69,15 +67,6 @@ export function brandForWorkspaceSlug(slug?: string | null): Brand {
 
 export function getBrand(key: BrandKey): Brand {
   return BRANDS[key];
-}
-
-/**
- * Server-only: brand for the current request, resolved from the Host header.
- * Use in Server Components / layouts / generateMetadata.
- */
-export async function getRequestBrand(): Promise<Brand> {
-  const h = await headers();
-  return brandForHost(h.get("host"));
 }
 
 /**

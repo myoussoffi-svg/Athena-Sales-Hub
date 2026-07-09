@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getRequestBrand } from "@/lib/branding";
+import { getRequestBrand } from "@/lib/branding-server";
 import { SignInButton } from "./sign-in-button";
 
 export default async function LoginPage() {
