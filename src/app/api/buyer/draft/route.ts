@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
   if (!sponsor) {
     return NextResponse.json({ error: "sponsor is required" }, { status: 400 });
   }
+  const contactName = (body.contactName as string | undefined)?.trim() || undefined;
+  const contactTitle = (body.contactTitle as string | undefined)?.trim() || undefined;
 
   // Recent deals for this sponsor — the personalization hook
   const deals = await prisma.deal.findMany({
@@ -90,7 +92,8 @@ export async function POST(request: NextRequest) {
       campaignId: campaign.id,
       assignedToId: sessionUser.id,
       kind: "buyer",
-      name: sponsor,
+      name: contactName ?? sponsor,
+      title: contactTitle,
       email: "",
       organization: sponsor,
       orgType: primarySector,
@@ -107,6 +110,7 @@ export async function POST(request: NextRequest) {
     buyer: d.buyer,
     target: d.target,
     platform: d.platform,
+    seller: d.seller,
     industry: d.industryLabel,
     summary: d.summary,
   }));
@@ -115,6 +119,7 @@ export async function POST(request: NextRequest) {
     buyerSystemPrompt,
     sponsor,
     deals: dealContext,
+    contactName,
   });
 
   const outreach = await prisma.outreach.create({

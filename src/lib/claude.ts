@@ -333,6 +333,7 @@ export interface BuyerDealContext {
   buyer?: string | null;
   target?: string | null;
   platform?: string | null;
+  seller?: string | null;
   industry?: string | null;
   summary?: string | null;
 }
@@ -369,6 +370,7 @@ export async function generateBuyerEmail(
       parts.push(d.target ?? "a target");
       if (d.platform && d.platform !== d.target)
         parts.push(`(platform: ${d.platform})`);
+      if (d.seller) parts.push(`- previously owned by: ${d.seller}`);
       if (d.industry) parts.push(`- sector: ${d.industry}`);
       let line = parts.join(" ");
       if (d.summary) line += `\n   ${d.summary}`;
